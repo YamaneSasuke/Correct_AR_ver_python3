@@ -71,30 +71,6 @@ def crop_center(image):
     return square_image
 
 
-def padding_image(image):
-    height, width = image.shape[:2]
-    left = 0
-    right = width
-    top = 0
-    bottom = height
-
-    if height >= width:  # 縦長の場合
-        output_size = height
-        margin = int((height - width) / 2)
-        left = margin
-        right = left + width
-    else:  # 横長の場合
-        output_size = width
-        margin = int((width - height) / 2)
-        top = margin
-        bottom = top + height
-
-    square_image = np.zeros((output_size, output_size, 1))
-    square_image[top:bottom, left:right] = image
-
-    return square_image
-
-
 def sample_random_aspect_ratio(r_max, r_min=1):
     # アスペクト比rをランダム生成する
     r = np.random.uniform(r_min, r_max)
