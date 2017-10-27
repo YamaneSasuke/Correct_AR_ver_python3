@@ -23,7 +23,7 @@ class Dataset(chainer.dataset.DatasetMixin):
     def __init__(self, batch_size, start=0, end=17100, train=True):
         self.start=start
         self.end=end
-        self.aspect_ratio_max=3.0
+        self.aspect_ratio_max=4.0
         self.output_size=256
         self.crop_size=224
         self.num_data=end-start
@@ -44,6 +44,7 @@ class Dataset(chainer.dataset.DatasetMixin):
         return (self.end - self.start)
 
     def get_example(self, i):
+        self.finish = False
         handle = self.dataset.open()
         data = self.dataset.get_data(handle, list(self.indexes[self.i]))
         self.dataset.close(handle)
@@ -55,7 +56,7 @@ class Dataset(chainer.dataset.DatasetMixin):
             permu=np.random.permutation(self.num_data)
             self.indexes=np.array_split(permu, self.num_batch)
             self.finish = True
-        return X, T, self.finish, self.i
+        return X, T, self.finish
 
     def create_distorted_img(self, X_batch, aspect_ratio_max=3.0, output_size=256,
                              crop_size=224):
@@ -108,22 +109,22 @@ if __name__ == '__main__':
     ite = MultiprocessIterator(train, 1, n_processes=1)
     n=0
     i = 0
-    while True:
-        batch = next(ite)
-        x = batch[0][0]
-        t = batch[0][1]
-        finish = batch[0][2]
-        i = batch[0][3]
-        print(n)
-        print(i)
-        print(train.finish)
-        print('---------------------------------------------------------------')
-        print(x.shape)
-        print(t.shape)
-        plt.imshow(np.transpose(x[0], (1,2,0))/255.0)
-        plt.show()
-        print()
-        n = n+1
-        if finish is True:
-            break
+    for a in range(10):
+        print('a', a)
+        while True:
+            batch = next(ite)
+            x = batch[0][0]
+            t = batch[0][1]
+            finish = batch[0][2]
+            print(n)
+            print(finish)
+            print('---------------------------------------------------------------')
+            print(x.shape)
+            print(t.shape)
+            plt.imshow(np.transpose(x[0], (1,2,0))/255.0)
+            plt.show()
+            print()
+            n = n+1
+            if finish is True:
+                break
     ite.finalize()
