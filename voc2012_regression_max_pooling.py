@@ -11,16 +11,16 @@ import time
 import tqdm
 import copy
 import matplotlib.pyplot as plt
-from multiprocessing import Process, Queue
 
 import chainer
-from chainer import cuda, optimizers, Chain, serializers
 import chainer.functions as F
 import chainer.links as L
+from chainer import cuda, optimizers, Chain, serializers
+from chainer.iterators import MultiprocessIterator
 
 from links import CBR
 import voc2012_regression
-import load_datasets
+from load_datasets import Dataset
 
 
 # ネットワークの定義
@@ -38,7 +38,7 @@ class Convnet(Chain):
             l1=L.Linear(512, 1)
         )
 
-    def __call__(self, X, test):
+    def __call__(self, X):
         h = self.cbr1_1(X)
 
         h = self.cbr2_1(h)
@@ -56,29 +56,35 @@ class Convnet(Chain):
         return y
 
     def lossfun(self, X, t):
-        y = self.forward(X)
+        y = self(X)
         loss = F.mean_squared_error(y, t)
         return loss
 
-    def loss_ave(self, queue, num_batches):
+    def loss_ave(self, iterator):
         losses = []
-        for i in range(num_batches):
-            X_batch, T_batch = queue.get()
+        while True:
+            batch = next(iterator)
+            X_batch = batch[0][0]
+            T_batch = batch[0][1]
+            finish = batch[0][2]
             X_batch = cuda.to_gpu(X_batch)
             T_batch = cuda.to_gpu(T_batch)
             with chainer.using_config('train', False), chainer.no_backprop_mode():
                 loss = self.lossfun(X_batch, T_batch)
             losses.append(cuda.to_cpu(loss.data))
+            if finish is True:
+                break
         return np.mean(losses)
 
     def predict(self, X):
         X = cuda.to_gpu(X)
-        y = self.forward(X)
+        y = self(X)
         y = cuda.to_cpu(y.data)
         return y
 
 
 if __name__ == '__main__':
+    __spec__ = None
     file_name = os.path.splitext(os.path.basename(__file__))[0]
     time_start = time.time()
     image_list = []
@@ -88,7 +94,7 @@ if __name__ == '__main__':
     t_loss = []
 
     # 超パラメータ
-    max_iteration = 1000  # 繰り返し回数
+    max_iteration = 100000  # 繰り返し回数
     batch_size = 100  # ミニバッチサイズ
     num_train = 16500  # 学習データ数
     num_valid = 500  # 検証データ数
@@ -119,20 +125,12 @@ if __name__ == '__main__':
     num_batches_train = int(num_train / batch_size)
     num_batches_valid = int(num_valid / batch_size)
     # stream作成
-    streams = load_datasets.load_voc2012_stream(
-        batch_size, num_train, num_batches_valid)
-    train_stream, valid_stream, test_stream = streams
-    # キューを作成、プロセススタート
-    queue_train = Queue(10)
-    process_train = Process(target=load_datasets.load_data,
-                            args=(queue_train, train_stream, crop,
-                                  aspect_ratio_max, output_size, crop_size))
-    process_train.start()
-    queue_valid = Queue(10)
-    process_valid = Process(target=load_datasets.load_data,
-                            args=(queue_valid, valid_stream, crop,
-                                  aspect_ratio_max, output_size, crop_size))
-    process_valid.start()
+    train_data = Dataset(batch_size, 0, 16500, train=True)
+    valid_data = Dataset(batch_size, 16500, 17000, train=False)
+    test_data = Dataset(batch_size, 1700, 17200, train=False)
+    train_ite = MultiprocessIterator(train_data, 1, n_processes=1)
+    valid_ite = MultiprocessIterator(valid_data, 1, n_processes=1)
+    test_ite = MultiprocessIterator(test_data, 1, n_processes=1)
     # モデル読み込み
     model = Convnet().to_gpu()
     # Optimizerの設定
@@ -146,7 +144,10 @@ if __name__ == '__main__':
             losses = []
             accuracies = []
             for i in tqdm.tqdm(range(num_batches_train)):
-                X_batch, T_batch = queue_train.get()
+                batch = next(train_ite)
+                X_batch = batch[0][0]
+                T_batch = batch[0][1]
+                finish = batch[0][2]
                 X_batch = cuda.to_gpu(X_batch)
                 T_batch = cuda.to_gpu(T_batch)
                 # 勾配を初期化
@@ -158,13 +159,15 @@ if __name__ == '__main__':
                     loss.backward()
                 optimizer.update()
                 losses.append(cuda.to_cpu(loss.data))
+                if finish is True:
+                    break
 
             time_end = time.time()
             epoch_time = time_end - time_begin
             total_time = time_end - time_origin
             epoch_loss.append(np.mean(losses))
 
-            loss_valid = model.loss_ave(queue_valid, num_batches_valid)
+            loss_valid = model.loss_ave(valid_ite)
             epoch_valid_loss.append(loss_valid)
             if loss_valid < loss_valid_best:
                 loss_valid_best = loss_valid
@@ -192,12 +195,18 @@ if __name__ == '__main__':
                 plt.show()
 
             # 検証用のデータを取得
-            X_valid, T_valid = queue_valid.get()
+            test_batch = next(test_ite)
+            X_valid = test_batch[0][0]
+            T_valid = test_batch[0][1]
             t_loss = voc2012_regression.test_output(model_best, X_valid,
                                                     T_valid, t_loss)
 
     except KeyboardInterrupt:
         print("割り込み停止が実行されました")
+
+    train_ite.finalize()
+    valid_ite.finalize()
+    test_ite.finalize()
 
     plt.figure(figsize=(16, 12))
     plt.plot(epoch_loss)
@@ -212,8 +221,6 @@ if __name__ == '__main__':
     model_filename = os.path.join(output_root_dir, model_filename)
     serializers.save_npz(model_filename, model_best)
 
-    process_train.terminate()
-    process_valid.terminate()
     print('max_iteration:', max_iteration)
     print('learning_rate:', learning_rate)
     print('batch_size:', batch_size)
