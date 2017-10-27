@@ -73,7 +73,7 @@ class Convnet(Chain):
 
 
 def test_output(model, X, T, t_loss):
-    predict_t = model.predict(X, True)
+    predict_t = model.predict(X)
     target_t = T
     predict_r = np.exp(predict_t)
     target_r = np.exp(target_t)
@@ -88,21 +88,21 @@ def test_output(model, X, T, t_loss):
     print('predict t:', predict_t[0], 'target t:', target_t[0])
     print('predict r:', predict_r[0], 'target r:', target_r[0])
 
-#    plt.plot(t_loss)
-#    plt.title("t_disdance")
-#    plt.grid()
-#    plt.show()
+    plt.plot(t_loss[0])
+    plt.title("t_disdance")
+    plt.grid()
+    plt.show()
 
-#    plt.subplot(131)
-#    plt.title("debased_image")
-#    plt.imshow(debased_image/256.0)
-#    plt.subplot(132)
-#    plt.title("fix_image")
-#    plt.imshow(predict_image/256.0)
-#    plt.subplot(133)
-#    plt.title("target_image")
-#    plt.imshow(original_image/256.0)
-#    plt.show()
+    plt.subplot(131)
+    plt.title("debased_image")
+    plt.imshow(debased_image/256.0)
+    plt.subplot(132)
+    plt.title("fix_image")
+    plt.imshow(predict_image/256.0)
+    plt.subplot(133)
+    plt.title("target_image")
+    plt.imshow(original_image/256.0)
+    plt.show()
     return t_loss
 
 
