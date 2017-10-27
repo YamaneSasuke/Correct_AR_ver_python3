@@ -88,23 +88,34 @@ if __name__ == '__main__':
     __spec__ = None
     file_name = os.path.splitext(os.path.basename(__file__))[0]
     time_start = time.time()
-    image_list = []
-    epoch_loss = []
-    epoch_valid_loss = []
-    loss_valid_best = np.inf
-    t_loss = []
+    epoch_loss1 = []
+    epoch_loss2 = []
+    epoch_loss3 = []
+    epoch_loss4 = []
+    epoch_loss5 = []
+    epoch_valid_loss1 = []
+    epoch_valid_loss2 = []
+    epoch_valid_loss3 = []
+    epoch_valid_loss4 = []
+    epoch_valid_loss5 = []
+    loss_valid_best1 = np.inf
+    loss_valid_best2 = np.inf
+    loss_valid_best3 = np.inf
+    loss_valid_best4 = np.inf
+    loss_valid_best5 = np.inf
+#    t_loss = []
 
     # 超パラメータ
     max_iteration = 100000  # 繰り返し回数
     batch_size = 100  # ミニバッチサイズ
     num_train = 16500  # 学習データ数
     num_valid = 500  # 検証データ数
-    learning_rate = 0.01  # 学習率
-    output_size = 256  # 生成画像サイズ
-    crop_size = 224  # ネットワーク入力画像サイズ
-    aspect_ratio_min = 1.0  # 最小アスペクト比の誤り
+    learning_rate1 = 0.1  # 学習率
+    learning_rate2 = 0.01  # 学習率
+    learning_rate3 = 0.001  # 学習率
+    learning_rate4 = 0.0001  # 学習率
+    learning_rate5 = 0.00001  # 学習率
     aspect_ratio_max = 4.0  # 最大アスペクト比の誤り
-    crop = True
     # 学習結果保存場所
     output_location = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio'
     # 学習結果保存フォルダ作成
@@ -116,12 +127,20 @@ if __name__ == '__main__':
     else:
         os.makedirs(output_root_dir)
     # ファイル名を作成
-    model_filename = str(file_name) + '.npz'
+    model_filename1 = str(file_name) + '_1' + '.npz'
+    model_filename2 = str(file_name) + '_2' + '.npz'
+    model_filename3 = str(file_name) + '_3' + '.npz'
+    model_filename4 = str(file_name) + '_4' + '.npz'
+    model_filename5 = str(file_name) + '_5' + '.npz'
     loss_filename = 'epoch_loss' + str(time_start) + '.png'
-    t_dis_filename = 't_distance' + str(time_start) + '.png'
-    model_filename = os.path.join(output_root_dir, model_filename)
+#    t_dis_filename = 't_distance' + str(time_start) + '.png'
+    model_filename1 = os.path.join(output_root_dir, model_filename1)
+    model_filename2 = os.path.join(output_root_dir, model_filename2)
+    model_filename3 = os.path.join(output_root_dir, model_filename3)
+    model_filename4 = os.path.join(output_root_dir, model_filename4)
+    model_filename5 = os.path.join(output_root_dir, model_filename5)
     loss_filename = os.path.join(output_root_dir, loss_filename)
-    t_dis_filename = os.path.join(output_root_dir, t_dis_filename)
+#    t_dis_filename = os.path.join(output_root_dir, t_dis_filename)
     # バッチサイズ計算
     num_batches_train = int(num_train / batch_size)
     num_batches_valid = int(num_valid / batch_size)
@@ -133,17 +152,32 @@ if __name__ == '__main__':
     valid_ite = MultiprocessIterator(valid_data, 1, n_processes=1)
     test_ite = MultiprocessIterator(test_data, 1, n_processes=1)
     # モデル読み込み
-    model = Convnet().to_gpu()
+    model1 = Convnet().to_gpu()
+    model2 = Convnet().to_gpu()
+    model3 = Convnet().to_gpu()
+    model4 = Convnet().to_gpu()
+    model5 = Convnet().to_gpu()
     # Optimizerの設定
-    optimizer = optimizers.Adam(learning_rate)
-    optimizer.setup(model)
+    optimizer1 = optimizers.Adam(learning_rate1)
+    optimizer1.setup(model1)
+    optimizer2 = optimizers.Adam(learning_rate2)
+    optimizer2.setup(model2)
+    optimizer3 = optimizers.Adam(learning_rate3)
+    optimizer3.setup(model3)
+    optimizer4 = optimizers.Adam(learning_rate4)
+    optimizer4.setup(model4)
+    optimizer5 = optimizers.Adam(learning_rate5)
+    optimizer5.setup(model5)
 
     time_origin = time.time()
     try:
         for epoch in range(max_iteration):
             time_begin = time.time()
-            losses = []
-            accuracies = []
+            losses1 = []
+            losses2 = []
+            losses3 = []
+            losses4 = []
+            losses5 = []
             for i in tqdm.tqdm(range(num_batches_train)):
                 batch = next(train_ite)
                 X_batch = batch[0][0]
@@ -152,55 +186,115 @@ if __name__ == '__main__':
                 X_batch = cuda.to_gpu(X_batch)
                 T_batch = cuda.to_gpu(T_batch)
                 # 勾配を初期化
-                model.cleargrads()
+                model1.cleargrads()
+                model2.cleargrads()
+                model3.cleargrads()
+                model4.cleargrads()
+                model5.cleargrads()
                 with chainer.using_config('train', True):
                     # 順伝播を計算し、誤差と精度を取得
-                    loss = model.lossfun(X_batch, T_batch)
+                    loss1 = model1.lossfun(X_batch, T_batch)
+                    loss2 = model2.lossfun(X_batch, T_batch)
+                    loss3 = model3.lossfun(X_batch, T_batch)
+                    loss4 = model4.lossfun(X_batch, T_batch)
+                    loss5 = model5.lossfun(X_batch, T_batch)
                     # 逆伝搬を計算
-                    loss.backward()
-                optimizer.update()
-                losses.append(cuda.to_cpu(loss.data))
+                    loss1.backward()
+                    loss2.backward()
+                    loss3.backward()
+                    loss4.backward()
+                    loss5.backward()
+                optimizer1.update()
+                optimizer2.update()
+                optimizer3.update()
+                optimizer4.update()
+                optimizer5.update()
+                losses1.append(cuda.to_cpu(loss1.data))
+                losses2.append(cuda.to_cpu(loss2.data))
+                losses3.append(cuda.to_cpu(loss3.data))
+                losses4.append(cuda.to_cpu(loss4.data))
+                losses5.append(cuda.to_cpu(loss5.data))
                 if finish is True:
                     break
 
             time_end = time.time()
             epoch_time = time_end - time_begin
             total_time = time_end - time_origin
-            epoch_loss.append(np.mean(losses))
+            epoch_loss1.append(np.mean(losses1))
+            epoch_loss2.append(np.mean(losses2))
+            epoch_loss3.append(np.mean(losses3))
+            epoch_loss4.append(np.mean(losses4))
+            epoch_loss5.append(np.mean(losses5))
 
-            loss_valid = model.loss_ave(valid_ite)
-            epoch_valid_loss.append(loss_valid)
-            if loss_valid < loss_valid_best:
-                loss_valid_best = loss_valid
-                epoch__loss_best = epoch
-                model_best = copy.deepcopy(model)
+            loss_valid1 = model1.loss_ave(valid_ite)
+            loss_valid2 = model2.loss_ave(valid_ite)
+            loss_valid3 = model3.loss_ave(valid_ite)
+            loss_valid4 = model4.loss_ave(valid_ite)
+            loss_valid5 = model5.loss_ave(valid_ite)
+            epoch_valid_loss1.append(loss_valid1)
+            epoch_valid_loss2.append(loss_valid2)
+            epoch_valid_loss3.append(loss_valid3)
+            epoch_valid_loss4.append(loss_valid4)
+            epoch_valid_loss5.append(loss_valid5)
+
+            if loss_valid1 < loss_valid_best1:
+                loss_valid_best1 = loss_valid1
+                epoch__loss_best1 = epoch
+                model_best1 = copy.deepcopy(model1)
+
+            if loss_valid2 < loss_valid_best2:
+                loss_valid_best2 = loss_valid2
+                epoch__loss_best2 = epoch
+                model_best2 = copy.deepcopy(model2)
+
+            if loss_valid3 < loss_valid_best3:
+                loss_valid_best3 = loss_valid3
+                epoch__loss_best3 = epoch
+                model_best3 = copy.deepcopy(model3)
+
+            if loss_valid4 < loss_valid_best4:
+                loss_valid_best4 = loss_valid4
+                epoch__loss_best4 = epoch
+                model_best4 = copy.deepcopy(model4)
+
+            if loss_valid5 < loss_valid_best5:
+                loss_valid_best5 = loss_valid5
+                epoch__loss_best5 = epoch
+                model_best5 = copy.deepcopy(model5)
 
             # 訓練データでの結果を表示
             print()
-            print("dog_data_regression_ave_pooling.py")
+            print("voc2012_regression_max_pooling.py")
             print("epoch:", epoch)
             print("time", epoch_time, "(", total_time, ")")
-            print("loss[train]:", epoch_loss[epoch])
-            print("loss[valid]:", loss_valid)
-            print("loss[valid_best]:", loss_valid_best)
-            print("epoch[valid_best]:", epoch__loss_best)
+#            print("loss[train]:", epoch_loss[epoch])
+#            print("loss[valid]:", loss_valid)
+#            print("loss[valid_best]:", loss_valid_best)
+#            print("epoch[valid_best]:", epoch__loss_best)
 
-            if (epoch % 10) == 0:
-                plt.figure(figsize=(16, 12))
-                plt.plot(epoch_loss)
-                plt.plot(epoch_valid_loss)
-                plt.ylim(0, 0.5)
-                plt.title("loss")
-                plt.legend(["train", "valid"], loc="upper right")
-                plt.grid()
-                plt.show()
+#            if (epoch % 10) == 0:
+            plt.plot(epoch_loss1)
+            plt.plot(epoch_loss2)
+            plt.plot(epoch_loss3)
+            plt.plot(epoch_loss4)
+            plt.plot(epoch_loss5)
+            plt.plot(epoch_valid_loss1)
+            plt.plot(epoch_valid_loss2)
+            plt.plot(epoch_valid_loss3)
+            plt.plot(epoch_valid_loss4)
+            plt.plot(epoch_valid_loss5)
+#            plt.ylim(0, 0.5)
+            plt.title("loss")
+            plt.legend(["train1", "train2", "train3", "train4", "train5", "valid1", "valid2", "valid3", "valid4", "valid5"], loc="upper right")
+            plt.grid()
+            plt.show()
 
             # 検証用のデータを取得
-            test_batch = next(test_ite)
-            X_valid = test_batch[0][0]
-            T_valid = test_batch[0][1]
-            t_loss = voc2012_regression.test_output(model_best, X_valid,
-                                                    T_valid, t_loss)
+#            test_batch = next(test_ite)
+#            X_valid = test_batch[0][0]
+#            T_valid = test_batch[0][1]
+#            t_loss = voc2012_regression.test_output(model_best, X_valid,
+#                                                    T_valid, t_loss)
 
     except KeyboardInterrupt:
         print("割り込み停止が実行されました")
@@ -209,25 +303,40 @@ if __name__ == '__main__':
     valid_ite.finalize()
     test_ite.finalize()
 
-    plt.figure(figsize=(16, 12))
-    plt.plot(epoch_loss)
-    plt.plot(epoch_valid_loss)
-    plt.ylim(0, 0.5)
+    plt.plot(epoch_loss1)
+    plt.plot(epoch_loss2)
+    plt.plot(epoch_loss3)
+    plt.plot(epoch_loss4)
+    plt.plot(epoch_loss5)
+    plt.plot(epoch_valid_loss1)
+    plt.plot(epoch_valid_loss2)
+    plt.plot(epoch_valid_loss3)
+    plt.plot(epoch_valid_loss4)
+    plt.plot(epoch_valid_loss5)
+#    plt.ylim(0, 0.5)
     plt.title("loss")
-    plt.legend(["train", "valid"], loc="upper right")
+    plt.legend(["train1", "train2", "train3", "train4", "train5", "valid1", "valid2", "valid3", "valid4", "valid5"], loc="upper right")
     plt.grid()
     plt.savefig(loss_filename)
     plt.show()
 
-    model_filename = os.path.join(output_root_dir, model_filename)
-    serializers.save_npz(model_filename, model_best)
+    serializers.save_npz(model_filename1, model_best1)
+
+    serializers.save_npz(model_filename2, model_best2)
+
+    serializers.save_npz(model_filename3, model_best3)
+
+    serializers.save_npz(model_filename4, model_best4)
+
+    serializers.save_npz(model_filename5, model_best5)
 
     print('max_iteration:', max_iteration)
-    print('learning_rate:', learning_rate)
     print('batch_size:', batch_size)
     print('train_size', num_train)
     print('valid_size', num_valid)
-    print('output_size', output_size)
-    print('crop_size', crop_size)
-    print('aspect_ratio_min', aspect_ratio_min)
     print('aspect_ratio_max', aspect_ratio_max)
+    print('learning_rate1:', learning_rate1)
+    print('learning_rate2:', learning_rate2)
+    print('learning_rate3:', learning_rate3)
+    print('learning_rate4:', learning_rate4)
+    print('learning_rate5:', learning_rate5)

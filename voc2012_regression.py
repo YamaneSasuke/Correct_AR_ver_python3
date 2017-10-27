@@ -95,12 +95,21 @@ def test_output(model, X, T, t_loss):
 
     plt.subplot(131)
     plt.title("debased_image")
+    plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
+                    labelright='off')
+    plt.tick_params(bottom='off', top='off', left='off', right='off')
     plt.imshow(debased_image/256.0)
     plt.subplot(132)
     plt.title("fix_image")
+    plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
+                    labelright='off')
+    plt.tick_params(bottom='off', top='off', left='off', right='off')
     plt.imshow(predict_image/256.0)
     plt.subplot(133)
     plt.title("target_image")
+    plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
+                    labelright='off')
+    plt.tick_params(bottom='off', top='off', left='off', right='off')
     plt.imshow(original_image/256.0)
     plt.show()
     return t_loss
