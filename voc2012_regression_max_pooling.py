@@ -78,7 +78,8 @@ class Convnet(Chain):
 
     def predict(self, X):
         X = cuda.to_gpu(X)
-        y = self(X)
+        with chainer.using_config('train', False), chainer.no_backprop_mode():
+            y = self(X)
         y = cuda.to_cpu(y.data)
         return y
 
@@ -152,7 +153,7 @@ if __name__ == '__main__':
                 T_batch = cuda.to_gpu(T_batch)
                 # 勾配を初期化
                 model.cleargrads()
-                with chainer.using_config('train', True), chainer.no_backprop_mode():
+                with chainer.using_config('train', True):
                     # 順伝播を計算し、誤差と精度を取得
                     loss = model.lossfun(X_batch, T_batch)
                     # 逆伝搬を計算
