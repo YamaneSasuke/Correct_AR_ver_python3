@@ -35,6 +35,68 @@ class Convnet(Chain):
             cbr5_1=CBR(256, 512, 3, 1, 1),
             cbr5_2=CBR(512, 512, 3, 2, 1),
 
+            l1=L.Linear(512, 1),
+            norm1=L.BatchNormalization(512),
+            l2=L.Linear(512, 1)
+        )
+
+    def __call__(self, X):
+        h = self.cbr1_1(X)
+
+        h = self.cbr2_1(h)
+
+        h = self.cbr3_1(h)
+
+        h = self.cbr4_1(h)
+        h = self.cbr4_2(h)
+
+        h = self.cbr5_1(h)
+        h = self.cbr5_2(h)
+
+        h = F.relu(self.norm1(self.l1(h)))
+        y = self.l2(h)
+        return y
+
+    def lossfun(self, X, t):
+        y = self(X)
+        loss = F.mean_squared_error(y, t)
+        return loss
+
+    def loss_ave(self, iterator):
+        losses = []
+        while True:
+            batch = next(iterator)
+            X_batch = batch[0][0]
+            T_batch = batch[0][1]
+            finish = batch[0][2]
+            X_batch = cuda.to_gpu(X_batch)
+            T_batch = cuda.to_gpu(T_batch)
+            with chainer.using_config('train', False), chainer.no_backprop_mode():
+                loss = self.lossfun(X_batch, T_batch)
+            losses.append(cuda.to_cpu(loss.data))
+            if finish is True:
+                break
+        return np.mean(losses)
+
+    def predict(self, X):
+        X = cuda.to_gpu(X)
+        with chainer.using_config('train', False), chainer.no_backprop_mode():
+            y = self(X)
+        y = cuda.to_cpu(y.data)
+        return y
+
+# ネットワークの定義
+class Convnet_max(Chain):
+    def __init__(self):
+        super(Convnet, self).__init__(
+            cbr1_1=CBR(3, 64, 3, 2, 1),
+            cbr2_1=CBR(64, 128, 3, 2, 1),
+            cbr3_1=CBR(128, 128, 3, 2, 1),
+            cbr4_1=CBR(128, 256, 3, 1, 1),
+            cbr4_2=CBR(256, 256, 3, 2, 1),
+            cbr5_1=CBR(256, 512, 3, 1, 1),
+            cbr5_2=CBR(512, 512, 3, 2, 1),
+
             l1=L.Linear(512, 1)
         )
 
@@ -76,12 +138,58 @@ class Convnet(Chain):
                 break
         return np.mean(losses)
 
-    def predict(self, X):
-        X = cuda.to_gpu(X)
-        with chainer.using_config('train', False), chainer.no_backprop_mode():
-            y = self(X)
-        y = cuda.to_cpu(y.data)
+# ネットワークの定義
+class Convnet_ave(Chain):
+    def __init__(self):
+        super(Convnet, self).__init__(
+            cbr1_1=CBR(3, 64, 3, 2, 1),
+            cbr2_1=CBR(64, 128, 3, 2, 1),
+            cbr3_1=CBR(128, 128, 3, 2, 1),
+            cbr4_1=CBR(128, 256, 3, 1, 1),
+            cbr4_2=CBR(256, 256, 3, 2, 1),
+            cbr5_1=CBR(256, 512, 3, 1, 1),
+            cbr5_2=CBR(512, 512, 3, 2, 1),
+
+            l1=L.Linear(512, 1)
+        )
+
+    def __call__(self, X):
+        h = self.cbr1_1(X)
+
+        h = self.cbr2_1(h)
+
+        h = self.cbr3_1(h)
+
+        h = self.cbr4_1(h)
+        h = self.cbr4_2(h)
+
+        h = self.cbr5_1(h)
+        h = self.cbr5_2(h)
+
+        h = F.average_pooling_2d(h, 7)
+        y = self.l1(h)
         return y
+
+    def lossfun(self, X, t):
+        y = self(X)
+        loss = F.mean_squared_error(y, t)
+        return loss
+
+    def loss_ave(self, iterator):
+        losses = []
+        while True:
+            batch = next(iterator)
+            X_batch = batch[0][0]
+            T_batch = batch[0][1]
+            finish = batch[0][2]
+            X_batch = cuda.to_gpu(X_batch)
+            T_batch = cuda.to_gpu(T_batch)
+            with chainer.using_config('train', False), chainer.no_backprop_mode():
+                loss = self.lossfun(X_batch, T_batch)
+            losses.append(cuda.to_cpu(loss.data))
+            if finish is True:
+                break
+        return np.mean(losses)
 
 
 if __name__ == '__main__':
@@ -110,11 +218,7 @@ if __name__ == '__main__':
     batch_size = 100  # ミニバッチサイズ
     num_train = 16500  # 学習データ数
     num_valid = 500  # 検証データ数
-    learning_rate1 = 0.1  # 学習率
-    learning_rate2 = 0.01  # 学習率
-    learning_rate3 = 0.001  # 学習率
-    learning_rate4 = 0.0001  # 学習率
-    learning_rate5 = 0.00001  # 学習率
+    learning_rate = 0.001  # 学習率 test loss順位1
     aspect_ratio_max = 4.0  # 最大アスペクト比の誤り
     # 学習結果保存場所
     output_location = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio'
@@ -130,15 +234,11 @@ if __name__ == '__main__':
     model_filename1 = str(file_name) + '_1' + '.npz'
     model_filename2 = str(file_name) + '_2' + '.npz'
     model_filename3 = str(file_name) + '_3' + '.npz'
-    model_filename4 = str(file_name) + '_4' + '.npz'
-    model_filename5 = str(file_name) + '_5' + '.npz'
     loss_filename = 'epoch_loss' + str(time_start) + '.png'
 #    t_dis_filename = 't_distance' + str(time_start) + '.png'
     model_filename1 = os.path.join(output_root_dir, model_filename1)
     model_filename2 = os.path.join(output_root_dir, model_filename2)
     model_filename3 = os.path.join(output_root_dir, model_filename3)
-    model_filename4 = os.path.join(output_root_dir, model_filename4)
-    model_filename5 = os.path.join(output_root_dir, model_filename5)
     loss_filename = os.path.join(output_root_dir, loss_filename)
 #    t_dis_filename = os.path.join(output_root_dir, t_dis_filename)
     # バッチサイズ計算
@@ -153,21 +253,15 @@ if __name__ == '__main__':
     test_ite = MultiprocessIterator(test_data, 1, n_processes=1)
     # モデル読み込み
     model1 = Convnet().to_gpu()
-    model2 = Convnet().to_gpu()
-    model3 = Convnet().to_gpu()
-    model4 = Convnet().to_gpu()
-    model5 = Convnet().to_gpu()
+    model2 = Convnet_max().to_gpu()
+    model3 = Convnet_ave().to_gpu()
     # Optimizerの設定
-    optimizer1 = optimizers.Adam(learning_rate1)
+    optimizer1 = optimizers.Adam(learning_rate)
     optimizer1.setup(model1)
-    optimizer2 = optimizers.Adam(learning_rate2)
+    optimizer2 = optimizers.Adam(learning_rate)
     optimizer2.setup(model2)
-    optimizer3 = optimizers.Adam(learning_rate3)
+    optimizer3 = optimizers.Adam(learning_rate)
     optimizer3.setup(model3)
-    optimizer4 = optimizers.Adam(learning_rate4)
-    optimizer4.setup(model4)
-    optimizer5 = optimizers.Adam(learning_rate5)
-    optimizer5.setup(model5)
 
     time_origin = time.time()
     try:
@@ -189,31 +283,21 @@ if __name__ == '__main__':
                 model1.cleargrads()
                 model2.cleargrads()
                 model3.cleargrads()
-                model4.cleargrads()
-                model5.cleargrads()
                 with chainer.using_config('train', True):
                     # 順伝播を計算し、誤差と精度を取得
                     loss1 = model1.lossfun(X_batch, T_batch)
                     loss2 = model2.lossfun(X_batch, T_batch)
                     loss3 = model3.lossfun(X_batch, T_batch)
-                    loss4 = model4.lossfun(X_batch, T_batch)
-                    loss5 = model5.lossfun(X_batch, T_batch)
                     # 逆伝搬を計算
                     loss1.backward()
                     loss2.backward()
                     loss3.backward()
-                    loss4.backward()
-                    loss5.backward()
                 optimizer1.update()
                 optimizer2.update()
                 optimizer3.update()
-                optimizer4.update()
-                optimizer5.update()
                 losses1.append(cuda.to_cpu(loss1.data))
                 losses2.append(cuda.to_cpu(loss2.data))
                 losses3.append(cuda.to_cpu(loss3.data))
-                losses4.append(cuda.to_cpu(loss4.data))
-                losses5.append(cuda.to_cpu(loss5.data))
                 if finish is True:
                     break
 
@@ -223,19 +307,13 @@ if __name__ == '__main__':
             epoch_loss1.append(np.mean(losses1))
             epoch_loss2.append(np.mean(losses2))
             epoch_loss3.append(np.mean(losses3))
-            epoch_loss4.append(np.mean(losses4))
-            epoch_loss5.append(np.mean(losses5))
 
             loss_valid1 = model1.loss_ave(valid_ite)
             loss_valid2 = model2.loss_ave(valid_ite)
             loss_valid3 = model3.loss_ave(valid_ite)
-            loss_valid4 = model4.loss_ave(valid_ite)
-            loss_valid5 = model5.loss_ave(valid_ite)
             epoch_valid_loss1.append(loss_valid1)
             epoch_valid_loss2.append(loss_valid2)
             epoch_valid_loss3.append(loss_valid3)
-            epoch_valid_loss4.append(loss_valid4)
-            epoch_valid_loss5.append(loss_valid5)
 
             if loss_valid1 < loss_valid_best1:
                 loss_valid_best1 = loss_valid1
@@ -252,23 +330,18 @@ if __name__ == '__main__':
                 epoch__loss_best3 = epoch
                 model_best3 = copy.deepcopy(model3)
 
-            if loss_valid4 < loss_valid_best4:
-                loss_valid_best4 = loss_valid4
-                epoch__loss_best4 = epoch
-                model_best4 = copy.deepcopy(model4)
-
-            if loss_valid5 < loss_valid_best5:
-                loss_valid_best5 = loss_valid5
-                epoch__loss_best5 = epoch
-                model_best5 = copy.deepcopy(model5)
 
             # 訓練データでの結果を表示
             print()
             print("voc2012_regression_max_pooling.py")
-            print("epoch:", epoch)
+            print("epoch:", epoch+1)
             print("time", epoch_time, "(", total_time, ")")
-#            print("loss[train]:", epoch_loss[epoch])
-#            print("loss[valid]:", loss_valid)
+            print("loss1[train]:", epoch_loss1[epoch])
+            print("loss2[train]:", epoch_loss2[epoch])
+            print("loss3[train]:", epoch_loss3[epoch])
+            print("loss1[valid]:", loss_valid1)
+            print("loss2[valid]:", loss_valid2)
+            print("loss3[valid]:", loss_valid3)
 #            print("loss[valid_best]:", loss_valid_best)
 #            print("epoch[valid_best]:", epoch__loss_best)
 
@@ -276,16 +349,12 @@ if __name__ == '__main__':
             plt.plot(epoch_loss1)
             plt.plot(epoch_loss2)
             plt.plot(epoch_loss3)
-            plt.plot(epoch_loss4)
-            plt.plot(epoch_loss5)
             plt.plot(epoch_valid_loss1)
             plt.plot(epoch_valid_loss2)
             plt.plot(epoch_valid_loss3)
-            plt.plot(epoch_valid_loss4)
-            plt.plot(epoch_valid_loss5)
-#            plt.ylim(0, 0.5)
+            plt.ylim(0, 0.5)
             plt.title("loss")
-            plt.legend(["train1", "train2", "train3", "train4", "train5", "valid1", "valid2", "valid3", "valid4", "valid5"], loc="upper right")
+            plt.legend(["train1", "train2", "train3", "valid1", "valid2", "valid3"], bbox_to_anchor=(1.25, 1), loc="upper right")
             plt.grid()
             plt.show()
 
@@ -306,16 +375,12 @@ if __name__ == '__main__':
     plt.plot(epoch_loss1)
     plt.plot(epoch_loss2)
     plt.plot(epoch_loss3)
-    plt.plot(epoch_loss4)
-    plt.plot(epoch_loss5)
     plt.plot(epoch_valid_loss1)
     plt.plot(epoch_valid_loss2)
     plt.plot(epoch_valid_loss3)
-    plt.plot(epoch_valid_loss4)
-    plt.plot(epoch_valid_loss5)
-#    plt.ylim(0, 0.5)
+    plt.ylim(0, 0.5)
     plt.title("loss")
-    plt.legend(["train1", "train2", "train3", "train4", "train5", "valid1", "valid2", "valid3", "valid4", "valid5"], loc="upper right")
+    plt.legend(["train1", "train2", "train3", "valid1", "valid2", "valid3"], bbox_to_anchor=(1.25, 1), loc="upper right")
     plt.grid()
     plt.savefig(loss_filename)
     plt.show()
@@ -326,17 +391,12 @@ if __name__ == '__main__':
 
     serializers.save_npz(model_filename3, model_best3)
 
-    serializers.save_npz(model_filename4, model_best4)
-
-    serializers.save_npz(model_filename5, model_best5)
-
     print('max_iteration:', max_iteration)
     print('batch_size:', batch_size)
     print('train_size', num_train)
     print('valid_size', num_valid)
     print('aspect_ratio_max', aspect_ratio_max)
-    print('learning_rate1:', learning_rate1)
-    print('learning_rate2:', learning_rate2)
-    print('learning_rate3:', learning_rate3)
-    print('learning_rate4:', learning_rate4)
-    print('learning_rate5:', learning_rate5)
+    print('learning_rate:', learning_rate)
+    print("loss_valid_best1:", loss_valid_best1)
+    print("loss_valid_best2:", loss_valid_best2)
+    print("loss_valid_best3:", loss_valid_best3)
