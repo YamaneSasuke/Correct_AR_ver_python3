@@ -24,9 +24,9 @@ from load_datasets import Dataset
 
 
 # ネットワークの定義
-class Convnet_max(Chain):
+class Convnet_ave(Chain):
     def __init__(self):
-        super(Convnet_max, self).__init__(
+        super(Convnet_ave, self).__init__(
             cbr1_1=CBR(3, 64, 3, 2, 1),
             cbr2_1=CBR(64, 128, 3, 2, 1),
             cbr3_1=CBR(128, 128, 3, 2, 1),
@@ -56,14 +56,14 @@ class Convnet_max(Chain):
         return y
 
     def bias_ave_pooling(self, h):
-        batch_list = []
+        b_list = []
         w_i = F.sigmoid(self.xp.sum(h.data, axis=1))
         for b in range(h.data.shape[0]):
-            channel_list = []
+            c_list = []
             for c in range(h.data.shape[1]):
-                channel_list.append(h.data[b][c] * w_i[b])
-            batch_list.append(self.xp.stack(channel_list))
-        new_h = self.xp.stack(batch_list)
+                c_list.append(self.xp.sum(h.data[b][c] * w_i[b]) / self.xp.sum(w_i[b]))
+            b_list.append(self.xp.stack(c_list))
+        new_h = self.xp.stack(b_list)
         return new_h
 
     def lossfun(self, X, t):
@@ -88,9 +88,9 @@ class Convnet_max(Chain):
         return np.mean(losses)
 
 # ネットワークの定義
-class Convnet_ave(Chain):
+class Convnet_bias_ave(Chain):
     def __init__(self):
-        super(Convnet_ave, self).__init__(
+        super(Convnet_bias_ave, self).__init__(
             cbr1_1=CBR(3, 64, 3, 2, 1),
             cbr2_1=CBR(64, 128, 3, 2, 1),
             cbr3_1=CBR(128, 128, 3, 2, 1),
@@ -115,9 +115,20 @@ class Convnet_ave(Chain):
         h = self.cbr5_1(h)
         h = self.cbr5_2(h)
 
-        h = F.average_pooling_2d(h, 7)
+        h = self.bias_ave_pooling(h)
         y = self.l1(h)
         return y
+
+    def bias_ave_pooling(self, h):
+        b_list = []
+        w_i = F.sigmoid(F.sum(h.data, axis=1))
+        for b in range(h.data.shape[0]):
+            c_list = []
+            for c in range(h.data.shape[1]):
+                c_list.append(F.sum(h.data[b][c] * w_i[b]) / F.sum(w_i[b]))
+            b_list.append(F.stack(c_list))
+        new_h = F.stack(b_list)
+        return new_h
 
     def lossfun(self, X, t):
         y = self(X)
@@ -174,11 +185,11 @@ if __name__ == '__main__':
     else:
         os.makedirs(output_root_dir)
     # ファイル名を作成
-    model_filename1 = str(file_name) + '_max' + '.npz'
-    model_filename2 = str(file_name) + '_ave' + '.npz'
+#    model_filename1 = str(file_name) + '_ave' + '.npz'
+    model_filename2 = str(file_name) + '_bias_ave' + '.npz'
     loss_filename = 'epoch_loss' + str(time_start) + '.png'
 #    t_dis_filename = 't_distance' + str(time_start) + '.png'
-    model_filename1 = os.path.join(output_root_dir, model_filename1)
+#    model_filename1 = os.path.join(output_root_dir, model_filename1)
     model_filename2 = os.path.join(output_root_dir, model_filename2)
     loss_filename = os.path.join(output_root_dir, loss_filename)
 #    t_dis_filename = os.path.join(output_root_dir, t_dis_filename)
@@ -193,11 +204,11 @@ if __name__ == '__main__':
     valid_ite = MultiprocessIterator(valid_data, 1, n_processes=1)
     test_ite = MultiprocessIterator(test_data, 1, n_processes=1)
     # モデル読み込み
-    model1 = Convnet_max().to_gpu()
-    model2 = Convnet_ave().to_gpu()
+    model1 = Convnet_ave().to_gpu()
+    model2 = Convnet_bias_ave().to_gpu()
     # Optimizerの設定
-    optimizer1 = optimizers.Adam(learning_rate)
-    optimizer1.setup(model1)
+#    optimizer1 = optimizers.Adam(learning_rate)
+#    optimizer1.setup(model1)
     optimizer2 = optimizers.Adam(learning_rate)
     optimizer2.setup(model2)
 
@@ -205,7 +216,7 @@ if __name__ == '__main__':
     try:
         for epoch in range(max_iteration):
             time_begin = time.time()
-            losses1 = []
+#            losses1 = []
             losses2 = []
             for i in tqdm.tqdm(range(num_batches_train)):
                 batch = next(train_ite)
@@ -215,18 +226,18 @@ if __name__ == '__main__':
                 X_batch = cuda.to_gpu(X_batch)
                 T_batch = cuda.to_gpu(T_batch)
                 # 勾配を初期化
-                model1.cleargrads()
+#                model1.cleargrads()
                 model2.cleargrads()
                 with chainer.using_config('train', True):
                     # 順伝播を計算し、誤差と精度を取得
-                    loss1 = model1.lossfun(X_batch, T_batch)
+#                    loss1 = model1.lossfun(X_batch, T_batch)
                     loss2 = model2.lossfun(X_batch, T_batch)
                     # 逆伝搬を計算
-                    loss1.backward()
+#                    loss1.backward()
                     loss2.backward()
-                optimizer1.update()
+#                optimizer1.update()
                 optimizer2.update()
-                losses1.append(cuda.to_cpu(loss1.data))
+#                losses1.append(cuda.to_cpu(loss1.data))
                 losses2.append(cuda.to_cpu(loss2.data))
                 if finish is True:
                     break
@@ -234,18 +245,18 @@ if __name__ == '__main__':
             time_end = time.time()
             epoch_time = time_end - time_begin
             total_time = time_end - time_origin
-            epoch_loss1.append(np.mean(losses1))
+#            epoch_loss1.append(np.mean(losses1))
             epoch_loss2.append(np.mean(losses2))
 
-            loss_valid1 = model1.loss_ave(valid_ite)
+#            loss_valid1 = model1.loss_ave(valid_ite)
             loss_valid2 = model2.loss_ave(valid_ite)
-            epoch_valid_loss1.append(loss_valid1)
+#            epoch_valid_loss1.append(loss_valid1)
             epoch_valid_loss2.append(loss_valid2)
 
-            if loss_valid1 < loss_valid_best1:
-                loss_valid_best1 = loss_valid1
-                epoch__loss_best1 = epoch
-                model_best1 = copy.deepcopy(model1)
+#            if loss_valid1 < loss_valid_best1:
+#                loss_valid_best1 = loss_valid1
+#                epoch__loss_best1 = epoch
+#                model_best1 = copy.deepcopy(model1)
 
             if loss_valid2 < loss_valid_best2:
                 loss_valid_best2 = loss_valid2
@@ -257,21 +268,21 @@ if __name__ == '__main__':
             print("voc2012_regression_max_pooling.py")
             print("epoch:", epoch+1)
             print("time", epoch_time, "(", total_time, ")")
-            print("loss_max[train]:", epoch_loss1[epoch])
-            print("loss_ave[train]:", epoch_loss2[epoch])
-            print("loss_max[valid]:", loss_valid1)
-            print("loss_ave[valid]:", loss_valid2)
+#            print("loss_ave[train]:", epoch_loss1[epoch])
+            print("loss_bias_ave[train]:", epoch_loss2[epoch])
+#            print("loss_ave[valid]:", loss_valid1)
+            print("loss_bias_ave[valid]:", loss_valid2)
 #            print("loss[valid_best]:", loss_valid_best)
 #            print("epoch[valid_best]:", epoch__loss_best)
 
 #            if (epoch % 10) == 0:
-            plt.plot(epoch_loss1)
+#            plt.plot(epoch_loss1)
             plt.plot(epoch_loss2)
-            plt.plot(epoch_valid_loss1)
+#            plt.plot(epoch_valid_loss1)
             plt.plot(epoch_valid_loss2)
             plt.ylim(0, 0.5)
             plt.title("loss")
-            plt.legend(["train_max", "train_ave", "valid_max", "valid_ave"], bbox_to_anchor=(1.3, 1), loc="upper right")
+            plt.legend(["train_bias_ave", "valid_bias_ave"], bbox_to_anchor=(1.3, 1), loc="upper right")
             plt.grid()
             plt.show()
 
@@ -289,18 +300,18 @@ if __name__ == '__main__':
     valid_ite.finalize()
     test_ite.finalize()
 
-    plt.plot(epoch_loss1)
+#    plt.plot(epoch_loss1)
     plt.plot(epoch_loss2)
-    plt.plot(epoch_valid_loss1)
+#    plt.plot(epoch_valid_loss1)
     plt.plot(epoch_valid_loss2)
     plt.ylim(0, 0.5)
     plt.title("loss")
-    plt.legend(["train_max", "train_ave", "valid_max", "valid_ave"], bbox_to_anchor=(1.3, 1), loc="upper right")
+    plt.legend(["train_bias_ave", "valid_bias_ave"], bbox_to_anchor=(1.3, 1), loc="upper right")
     plt.grid()
     plt.savefig(loss_filename)
     plt.show()
 
-    serializers.save_npz(model_filename1, model_best1)
+#    serializers.save_npz(model_filename1, model_best1)
 
     serializers.save_npz(model_filename2, model_best2)
 
@@ -310,5 +321,5 @@ if __name__ == '__main__':
     print('valid_size', num_valid)
     print('aspect_ratio_max', aspect_ratio_max)
     print('learning_rate:', learning_rate)
-    print("loss_valid_best_max:", loss_valid_best1)
-    print("loss_valid_best_ave:", loss_valid_best2)
+#    print("loss_valid_best_ave:", loss_valid_best1)
+    print("loss_valid_best_bias_ave:", loss_valid_best2)
