@@ -119,16 +119,12 @@ class Convnet_bias_ave(Chain):
         y = self.l1(h)
         return y
 
-    def bias_ave_pooling(self, h):
-        b_list = []
-        w_i = F.sigmoid(F.sum(h, axis=1))
-        for b in range(h.data.shape[0]):
-            c_list = []
-            for c in range(h.data.shape[1]):
-                c_list.append(F.sum(h[b][c] * w_i[b]) / F.sum(w_i[b]))
-            b_list.append(F.stack(c_list))
-        new_h = F.stack(b_list)
-        return new_h
+    def bias_ave_pooling(self, x):
+        w = F.tanh(F.sum(x, axis=1, keepdims=True))
+        w = F.broadcast_to(w, x.shape)
+        weighted_x = x * w
+        pooled_x = F.sum(weighted_x, axis=(2, 3))
+        return pooled_x / F.sum(w, axis=(2, 3))
 
     def lossfun(self, X, t):
         y = self(X)
