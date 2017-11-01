@@ -121,11 +121,11 @@ class Convnet_bias_ave(Chain):
 
     def bias_ave_pooling(self, h):
         b_list = []
-        w_i = F.sigmoid(F.sum(h.data, axis=1))
+        w_i = F.sigmoid(F.sum(h, axis=1))
         for b in range(h.data.shape[0]):
             c_list = []
             for c in range(h.data.shape[1]):
-                c_list.append(F.sum(h.data[b][c] * w_i[b]) / F.sum(w_i[b]))
+                c_list.append(F.sum(h[b][c] * w_i[b]) / F.sum(w_i[b]))
             b_list.append(F.stack(c_list))
         new_h = F.stack(b_list)
         return new_h
