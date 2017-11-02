@@ -6,6 +6,7 @@ Created on Wed Dec 14 20:54:58 2016
 """
 
 import os
+import copy
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
@@ -135,3 +136,46 @@ def create_folder(root, folder_name):
 def save_image(image, save_path, image_name):
     image_name = os.path.join(save_path, image_name)
     plt.imsave(image_name+'.jpg', image)
+
+
+def draw_vertical_line(image):
+    """
+    image:
+        shape=(224, 224, 3)
+    """
+    img = copy.copy(image)
+    img = cv2.line(img, (28,0), (28, 224), (0,0, 0), 2)
+    img = cv2.line(img, (56,0), (56, 224), (0,0, 0), 2)
+    img = cv2.line(img, (84,0), (84, 224), (0,0, 0), 2)
+    img = cv2.line(img, (112,0), (112, 224), (0,0, 0), 2)
+    img = cv2.line(img, (140,0), (140, 224), (0,0, 0), 2)
+    img = cv2.line(img, (168,0), (168, 224), (0,0, 0), 2)
+    img = cv2.line(img, (196,0), (196, 224), (0,0, 0), 2)
+    return img
+
+def draw_horizontal_line(image):
+    """
+    image:
+        shape=(224, 224, 3)
+    """
+    img = copy.copy(image)
+    img = cv2.line(img, (0, 28), (224, 28), (0,0, 0), 2)
+    img = cv2.line(img, (0, 56), (224, 56), (0,0, 0), 2)
+    img = cv2.line(img, (0, 84), (224, 84), (0,0, 0), 2)
+    img = cv2.line(img, (0, 112), (224, 112), (0,0, 0), 2)
+    img = cv2.line(img, (0, 140), (224, 140), (0,0, 0), 2)
+    img = cv2.line(img, (0, 168), (224, 168), (0,0, 0), 2)
+    img = cv2.line(img, (0, 196), (224, 196), (0,0, 0), 2)
+    return img
+
+if __name__ == '__main__':
+    img = plt.imread(r'images\001.jpg')
+    img = cv2.resize(img, (224, 224))
+    img2 = draw_vertical_line(img)
+    img3 = draw_horizontal_line(img)
+    plt.imshow(img)
+    plt.show()
+    plt.imshow(img2)
+    plt.show()
+    plt.imshow(img3)
+    plt.show()
