@@ -25,11 +25,11 @@ class Bias_sum_pooling(Chain):
 
     def __call__(self, X):
         h = self.conv(X)
-        h = self.bias_ave_pooling(h)
+        h = self.bias_sum_pooling(h)
         y = self.l1(h)
         return y
 
-    def bias_ave_pooling(self, x):
+    def bias_sum_pooling(self, x):
         w = F.tanh(F.sum(x, axis=1, keepdims=True))
         w = F.broadcast_to(w, x.shape)
         weighted_x = x * w
