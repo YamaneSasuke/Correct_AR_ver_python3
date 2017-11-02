@@ -18,7 +18,7 @@ import chainer.links as L
 from chainer import cuda, optimizers, Chain, serializers
 from chainer.iterators import MultiprocessIterator
 
-from links import ARConvnet
+from links import ARConvnet, CBR
 from load_datasets import Dataset
 
 # ネットワークの定義
@@ -52,7 +52,10 @@ class Conv_pooling(Chain):
     def __init__(self):
         super(Conv_pooling, self).__init__(
             conv=ARConvnet(),
-            create_w=L.Convolution2D(512, 1, 7),
+            create_w_1=CBR(512, 300, 1),
+            create_w_2=CBR(300, 100, 1),
+            create_w_3=L.Convolution2D(100, 1, 1),
+            bn=L.BatchNormalization(1),
             l1=L.Linear(512, 1)
         )
 
@@ -63,7 +66,9 @@ class Conv_pooling(Chain):
         return y
 
     def conv_pooling(self, x):
-        w = self.create_w(x)
+        w = self.create_w_1(x)
+        w = self.create_w_2(w)
+        w = F.tanh(self.bn(self.create_w_3(w)))
         w = F.broadcast_to(w, x.shape)
         weighted_x = x * w
         pooled_x = F.sum(weighted_x, axis=(2, 3))
@@ -209,7 +214,7 @@ def trainer(file_name, model, optimizer, params):
             plt.plot(valid_losses)
             plt.ylim(0, 0.5)
             plt.title("loss")
-            plt.legend(["train", "valid"], bbox_to_anchor=(1.3, 1), loc="upper right")
+            plt.legend(["train", "valid"], bbox_to_anchor=(1.2, 1), loc="upper right")
             plt.grid()
             plt.show()
 
@@ -266,5 +271,5 @@ if __name__ == '__main__':
     params = [max_iteration, batch_size, num_train, num_valid, learning_rate,
               aspect_ratio_max, output_location]
     # モデルの学習
-    train_loss, valid_loss, best_model = trainer(
+    train_losses, valid_losses, best_model = trainer(
             file_name, model, optimizer, params)
