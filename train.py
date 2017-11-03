@@ -76,9 +76,9 @@ def trainer(file_name, model, optimizer, params):
     # バッチサイズ計算
     num_batches_train = int(num_train / batch_size)
     # stream作成
-    train_data = Dataset(batch_size, 0, 16500, train=True)
-    valid_data = Dataset(batch_size, 16500, 17000, train=False)
-    test_data = Dataset(batch_size, 1700, 17200, train=False)
+    train_data = Dataset(batch_size, 0, 16500, aspect_ratio_max, train=True)
+    valid_data = Dataset(batch_size, 16500, 17000, aspect_ratio_max, train=False)
+    test_data = Dataset(batch_size, 1700, 17200, aspect_ratio_max, train=False)
     train_ite = MultiprocessIterator(train_data, 1, n_processes=1)
     valid_ite = MultiprocessIterator(valid_data, 1, n_processes=1)
     test_ite = MultiprocessIterator(test_data, 1, n_processes=1)
