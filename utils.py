@@ -114,8 +114,8 @@ def crop_224(image):
     w_crop = 224
 
     # 0以上 h_image - h_crop以下の整数乱数
-    top = (h_image - h_crop + 1) / 2
-    left = (h_image - h_crop + 1) / 2
+    top = int((h_image - h_crop + 1) / 2)
+    left = int((h_image - h_crop + 1) / 2)
     bottom = top + h_crop
     right = left + w_crop
 
@@ -144,13 +144,10 @@ def draw_vertical_line(image):
         shape=(224, 224, 3)
     """
     img = copy.copy(image)
-    img = cv2.line(img, (28,0), (28, 224), (0,0, 0), 2)
-    img = cv2.line(img, (56,0), (56, 224), (0,0, 0), 2)
-    img = cv2.line(img, (84,0), (84, 224), (0,0, 0), 2)
-    img = cv2.line(img, (112,0), (112, 224), (0,0, 0), 2)
-    img = cv2.line(img, (140,0), (140, 224), (0,0, 0), 2)
-    img = cv2.line(img, (168,0), (168, 224), (0,0, 0), 2)
-    img = cv2.line(img, (196,0), (196, 224), (0,0, 0), 2)
+    max_ = np.random.randint(1, 11)
+    for i in range(max_):
+        u = np.random.randint(0, img.shape[1]-2)
+        img[:, u:u+2, :] = 0
     return img
 
 def draw_horizontal_line(image):
@@ -159,13 +156,10 @@ def draw_horizontal_line(image):
         shape=(224, 224, 3)
     """
     img = copy.copy(image)
-    img = cv2.line(img, (0, 28), (224, 28), (0,0, 0), 2)
-    img = cv2.line(img, (0, 56), (224, 56), (0,0, 0), 2)
-    img = cv2.line(img, (0, 84), (224, 84), (0,0, 0), 2)
-    img = cv2.line(img, (0, 112), (224, 112), (0,0, 0), 2)
-    img = cv2.line(img, (0, 140), (224, 140), (0,0, 0), 2)
-    img = cv2.line(img, (0, 168), (224, 168), (0,0, 0), 2)
-    img = cv2.line(img, (0, 196), (224, 196), (0,0, 0), 2)
+    max_ = np.random.randint(1, 11)
+    for i in range(max_):
+        u = np.random.randint(0, img.shape[0]-2)
+        img[u:u+2, :, :] = 0
     return img
 
 if __name__ == '__main__':

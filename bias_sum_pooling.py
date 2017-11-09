@@ -16,9 +16,9 @@ from links import ARConvnet
 from train import trainer
 
 # ネットワークの定義
-class Bias_sum_pooling(Chain):
+class BiasSumPooling(Chain):
     def __init__(self):
-        super(Bias_sum_pooling, self).__init__(
+        super(BiasSumPooling, self).__init__(
             conv=ARConvnet(),
             l1=L.Linear(512, 1)
         )
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     # 学習結果保存場所
     output_location = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio'
     # モデル読み込み
-    model = Bias_sum_pooling().to_gpu()
+    model = BiasSumPooling().to_gpu()
 
     # Optimizerの設定
     optimizer = optimizers.Adam(learning_rate)
