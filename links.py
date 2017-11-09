@@ -20,3 +20,26 @@ class CBR(chainer.Chain):
 
     def __call__(self, x):
         return F.relu(self.bn(self.conv(x)))
+
+# ネットワークの定義
+class ARConvnet(chainer.Chain):
+    def __init__(self):
+        super(ARConvnet, self).__init__(
+            cbr1_1=CBR(3, 64, 3, 2, 1),
+            cbr2_1=CBR(64, 128, 3, 2, 1),
+            cbr3_1=CBR(128, 128, 3, 2, 1),
+            cbr4_1=CBR(128, 256, 3, 1, 1),
+            cbr4_2=CBR(256, 256, 3, 2, 1),
+            cbr5_1=CBR(256, 512, 3, 1, 1),
+            cbr5_2=CBR(512, 512, 3, 2, 1),
+        )
+
+    def __call__(self, X):
+        h = self.cbr1_1(X)
+        h = self.cbr2_1(h)
+        h = self.cbr3_1(h)
+        h = self.cbr4_1(h)
+        h = self.cbr4_2(h)
+        h = self.cbr5_1(h)
+        h = self.cbr5_2(h)
+        return h

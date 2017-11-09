@@ -20,10 +20,10 @@ from fuel.datasets.hdf5 import H5PYDataset
 import utils
 
 class Dataset(chainer.dataset.DatasetMixin):
-    def __init__(self, batch_size, start=0, end=17100, train=True):
+    def __init__(self, batch_size, start=0, end=17100, aspectratio_max, train=True):
         self.start=start
         self.end=end
-        self.aspect_ratio_max=4.0
+        self.aspect_ratio_max=aspectratio_max
         self.output_size=256
         self.crop_size=224
         self.num_data=end-start
@@ -32,6 +32,7 @@ class Dataset(chainer.dataset.DatasetMixin):
         self.indexes=np.array_split(permu, self.num_batch)
         self.i=0
         self.finish=False
+        self.train=train
 
         fuel_root = fuel.config.data_path[0]
         # データセットファイル保存場所
@@ -89,7 +90,10 @@ class Dataset(chainer.dataset.DatasetMixin):
             elif u == 4:
                 resize_image = cv2.resize(square_image, (output_size, output_size),
                                           interpolation=cv2.INTER_LANCZOS4)
-            crop_image = utils.random_crop_and_flip(resize_image, crop_size)
+            if self.train is True:
+                crop_image = utils.random_crop_and_flip(resize_image, crop_size)
+            else:
+                crop_image = utils.crop_224(resize_image)
             images.append(crop_image)
             ts.append(t)
         X = np.stack(images, axis=0)
