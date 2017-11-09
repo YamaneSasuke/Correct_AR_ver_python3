@@ -57,6 +57,8 @@ def trainer(file_name, model, optimizer, params):
     learning_rate = params[4]  # 学習率 test loss順位1
     aspect_ratio_max = params[5]  # 最大アスペクト比の誤り
     output_location = params[6]  # 学習結果保存場所
+    train_index = num_train
+    valid_index = num_train + num_valid
 
     # 学習結果保存フォルダ作成
     output_root_dir = os.path.join(output_location, file_name)
@@ -76,9 +78,9 @@ def trainer(file_name, model, optimizer, params):
     # バッチサイズ計算
     num_batches_train = int(num_train / batch_size)
     # stream作成
-    train_data = Dataset(batch_size, 0, 16500, aspect_ratio_max, train=True)
-    valid_data = Dataset(batch_size, 16500, 17000, aspect_ratio_max, train=False)
-    test_data = Dataset(batch_size, 1700, 17200, aspect_ratio_max, train=False)
+    train_data = Dataset(batch_size, 0, train_index, aspect_ratio_max, train=True)
+    valid_data = Dataset(batch_size, train_index, valid_index, aspect_ratio_max, train=False)
+    test_data = Dataset(batch_size, valid_index, 17100, aspect_ratio_max, train=False)
     train_ite = MultiprocessIterator(train_data, 1, n_processes=1)
     valid_ite = MultiprocessIterator(valid_data, 1, n_processes=1)
     test_ite = MultiprocessIterator(test_data, 1, n_processes=1)
