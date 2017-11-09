@@ -15,9 +15,9 @@ from links import ARConvnet, CBR
 from train import trainer
 
 # ネットワークの定義
-class Conv_pooling(Chain):
+class ConvPooling(Chain):
     def __init__(self):
-        super(Conv_pooling, self).__init__(
+        super(ConvPooling, self).__init__(
             conv=ARConvnet(),
             create_w_1=CBR(512, 300, 1),
             create_w_2=CBR(300, 100, 1),
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # 学習結果保存場所
     output_location = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio'
     # モデル読み込み
-    model = Conv_pooling().to_gpu()
+    model = ConvPooling().to_gpu()
 
     # Optimizerの設定
     optimizer = optimizers.Adam(learning_rate)

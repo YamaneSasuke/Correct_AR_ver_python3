@@ -7,22 +7,16 @@ Created on Fri Nov  3 15:33:32 2017
 
 import os
 import numpy as np
-import time
-import tqdm
-import copy
 import matplotlib.pyplot as plt
 
 import cv2
 
 import chainer
 import chainer.functions as F
-import chainer.links as L
 from chainer import cuda, serializers
-from chainer.iterators import MultiprocessIterator
 
 import bias_sum_pooling, conv_pooling, ave_pooling, max_pooling
 from load_datasets import TestDataset
-import utils
 
 def visualize(model, model_name, output_root_dir, t=0.0):
     test_data = TestDataset(1, 17000, 17200)
@@ -85,7 +79,7 @@ if __name__ == '__main__':
         os.makedirs(output_root_dir)
 
     # モデル読み込み
-    model = conv_pooling.Conv_pooling().to_gpu()
+    model = conv_pooling.ConvPooling().to_gpu()
     # Optimizerの設定
     serializers.load_npz(model_file, model)
     visualize(model, model_name, output_root_dir, t=t)

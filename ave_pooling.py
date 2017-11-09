@@ -15,9 +15,9 @@ from links import ARConvnet
 from train import trainer
 
 # ネットワークの定義
-class Ave_pooling(Chain):
+class AvePooling(Chain):
     def __init__(self):
-        super(Ave_pooling, self).__init__(
+        super(AvePooling, self).__init__(
             conv=ARConvnet(),
             l1=L.Linear(512, 1)
         )
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # 学習結果保存場所
     output_location = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio'
     # モデル読み込み
-    model = Ave_pooling().to_gpu()
+    model = AvePooling().to_gpu()
 
     # Optimizerの設定
     optimizer = optimizers.Adam(learning_rate)
