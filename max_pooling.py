@@ -24,7 +24,7 @@ class Max_pooling(Chain):
 
     def __call__(self, X):
         h = self.conv(X)
-        h = F.max_pooling_2d(h)
+        h = F.max_pooling_2d(h, 7)
         y = self.l1(h)
         return y
 

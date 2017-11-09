@@ -114,8 +114,8 @@ def crop_224(image):
     w_crop = 224
 
     # 0以上 h_image - h_crop以下の整数乱数
-    top = (h_image - h_crop + 1) / 2
-    left = (h_image - h_crop + 1) / 2
+    top = int((h_image - h_crop + 1) / 2)
+    left = int((h_image - h_crop + 1) / 2)
     bottom = top + h_crop
     right = left + w_crop
 
