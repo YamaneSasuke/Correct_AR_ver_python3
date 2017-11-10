@@ -51,7 +51,7 @@ if __name__ == '__main__':
     file_name = os.path.splitext(os.path.basename(__file__))[0]
 
     # 超パラメータ
-    max_iteration = 100000  # 繰り返し回数
+    max_iteration = 1500  # 繰り返し回数
     batch_size = 100  # ミニバッチサイズ
     num_train = 16500  # 学習データ数
     num_valid = 500  # 検証データ数
