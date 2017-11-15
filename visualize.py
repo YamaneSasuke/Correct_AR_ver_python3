@@ -49,7 +49,7 @@ def grad_cam_asp(model, model_name, output_root_dir, t=0.0):
             elif model_name == 'ave_pooling':
                 h2 = F.average_pooling_2d(h1, 7)
             elif model_name == 'max_pooling':
-                h2 = F.max_pooling_2d(h1)
+                h2 = F.max_pooling_2d(h1, 7)
             y = model.l1(h2)
             y.grad = grad
             y.backward(retain_grad=True)
@@ -146,10 +146,10 @@ if __name__ == '__main__':
         pass
     else:
         os.makedirs(output_root_dir)    # モデル読み込み
-    model = bias_sum_pooling.BiasSumPooling().to_gpu()
+    model = conv_pooling.ConvPooling().to_gpu()
     # Optimizerの設定
     serializers.load_npz(model_file, model)
-    grad_cam_asp(model, model_name, output_location, t=t)
+    grad_cam_asp(model, model_name, output_root_dir, t=t)
 
     # VGG16netの場合
 #    img_root = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\images\dog_cat.jpg'
