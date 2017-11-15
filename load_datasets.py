@@ -104,13 +104,13 @@ class Dataset(chainer.dataset.DatasetMixin):
                 crop_img = utils.random_crop_and_flip(resize_img, self.crop_size)
             else:
                 crop_img = utils.crop_224(resize_img)
-            th = np.random.rand()
-            if th < (1/3):
-                crop_img = utils.draw_horizontal_line(crop_img)
-            elif th > (2/3):
-                crop_img = utils.draw_vertical_line(crop_img)
-            else:
-                crop_img = crop_img
+#            th = np.random.rand()
+#            if th < (1/3):
+#                crop_img = utils.draw_horizontal_line(crop_img)
+#            elif th > (2/3):
+#                crop_img = utils.draw_vertical_line(crop_img)
+#            else:
+#                crop_img = crop_img
             img_list.append(crop_img)
             t_list.append(t)
         x = np.stack(img_list, axis=0)
@@ -187,6 +187,13 @@ class TestDataset(chainer.dataset.DatasetMixin):
                 resize_img = cv2.resize(square_img,
                                         (self.output_size, self.output_size),
                                         interpolation=cv2.INTER_LANCZOS4)
+            th = np.random.rand()
+            if th < (1/3):
+                resize_img = utils.draw_horizontal_line(resize_img)
+            elif th > (2/3):
+                resize_img = utils.draw_vertical_line(resize_img)
+            else:
+                resize_img = resize_img
             img_list.append(resize_img)
             t_list.append(t)
         x = np.stack(img_list, axis=0)

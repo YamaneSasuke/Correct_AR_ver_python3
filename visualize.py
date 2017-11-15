@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
     # ARestimatorの場合
     t = 1
-    model_file = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\bias_sum_pooling\1510231098.3499577\bias_sum_pooling.npz'
+    model_file = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\conv_pooling\1509605985.5894651\conv_pooling.npz'
     model_name = model_file.split('\\')[-3]
     file_name = model_file.split('\\')[-2]
     # 結果保存フォルダ作成
