@@ -9,17 +9,20 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from chainer import serializers
+import chainer
+from chainer import serializers, cuda
 
-import voc2012_regression_max_pooling
-import load_datasets
-import utility
+import ave_pooling, max_pooling, conv_pooling, bias_sum_pooling
+import utils
+from load_datasets import TestDataset
 
-
-def fix(model, stream, t):
-    for it in stream.get_epoch_iterator():
-        x, t = load_datasets.data_crop(it[0], random=False, t=t)
-    y = model.predict(x, True)
+def fix(model, data_iter, t):
+    batch = data_iter.get_example(t)
+    x = cuda.to_gpu(batch[0])
+    t = batch[1]
+    with chainer.using_config('train', False):
+        y = model(x)
+    y = cuda.to_cpu(y.data)
     error = t - y
     error_abs = np.abs(t - y)
     return error, error_abs
@@ -113,24 +116,20 @@ def draw_graph(loss, loss_abs, success_asp, num_test, t_list, save_path):
     for i in range(num_test):
         if mean_loss_abs[i] < threshold:
             count += 1
-    print 'under log(1.1303) =', count, '%'
-    print 'num_test', num_test
-    print 'model_file', model_file
+    print('under log(1.1303) =', count, '%')
+    print('num_test', num_test)
+    print('model_file', model_file)
 
 
 if __name__ == '__main__':
     file_name = os.path.splitext(os.path.basename(__file__))[0]
     # テスト結果を保存するルートパス
-    save_root = r'C:\Users\yamane\Dropbox\correct_aspect_ratio\demo'
+    save_root = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\demo'
     # モデルのルートパス
-    model_file = r'C:\Users\yamane\Dropbox\correct_aspect_ratio\dog_data_regression_ave_pooling\1485768519.06_asp_max_4.0\dog_data_regression_ave_pooling.npz'
-    batch_size = 100
-    crop_size = 224  # 切り抜きサイズ
-    num_train = 16500
-    num_valid = 500
-    num_test = 100
+    model_file = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\bias_sum_pooling\1509613391.5179036\bias_sum_pooling.npz'
     success_asp = np.exp(0.12247601469)  # 修正成功とみなすアスペクト比
     num_split = 20  # 歪み画像のアスペクト比の段階
+    num_test = 100
 
     loss_list = []
     loss_abs_list = []
@@ -145,19 +144,17 @@ if __name__ == '__main__':
         t = t + t_step
 
     # 結果を保存するフォルダを作成
-    folder_path = utility.create_folder(save_root, folder_name)
+    folder_path = utils.create_folder(save_root, folder_name)
     # モデル読み込み
-    model = voc2012_regression_max_pooling.Convnet().to_gpu()
+    model = bias_sum_pooling.BiasSumPooling().to_gpu()
     # Optimizerの設定
     serializers.load_npz(model_file, model)
-    # streamの取得
-    streams = load_datasets.load_voc2012_stream(
-        batch_size, num_train, num_valid, num_test)
-    train_stream, valid_stream, test_stream = streams
+
+    test_data = TestDataset(100, 17000, 17100)
     # アスペクト比ごとに歪み画像を作成し、修正誤差を計算
     for t in t_list:
-        print t
-        loss, loss_abs = fix(model, test_stream, t)
+        print(t)
+        loss, loss_abs = fix(model, test_data, t)
         loss_list.append(loss)
         loss_abs_list.append(loss_abs)
     # 修正誤差をグラフに描画

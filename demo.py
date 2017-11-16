@@ -9,76 +9,75 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from chainer import serializers
+import chainer
+from chainer import serializers, cuda
 
-import utility
-import load_datasets
-import voc2012_regression_max_pooling
+import utils
+from load_datasets import Dataset, TestDataset
+import ave_pooling, max_pooling, conv_pooling, bias_sum_pooling
 import make_html
 
 
-def lossfun(model, stream):
-    loss = []
-    loss_abs = []
-    target = []
-    predict = []
-    for it in stream.get_epoch_iterator():
-        x, t_l = load_datasets.data_crop(it[0])
-        y_l = model.predict(x, True)
-        e_l = t_l - y_l
-        e_l_abs = np.abs(t_l - y_l)
-        loss.append(e_l)
-        loss_abs.append(e_l_abs)
-        target.append(t_l)
-        predict.append(y_l)
+def lossfun(model):
+    test_data = Dataset(100, 17000, 17100, 3.0)
+    batch = test_data.get_example(0)
+    x = cuda.to_gpu(batch[0])
+    t_l = batch[1]
+    with chainer.using_config('train', True):
+        y_l = model(x)
+    e_l = t_l - cuda.to_cpu(y_l.data)
+    e_l_abs = np.abs(t_l - cuda.to_cpu(y_l.data))
+    loss = e_l
+    loss_abs = e_l_abs
+    target = t_l
+    predict = cuda.to_cpu(y_l.data)
 
     return loss, loss_abs, target, predict
 
 
-def show_and_save(stream, target, predict, save_path_f, save_path_d,
-                  save_path_o):
-    batch = 0
+def show_and_save(target, predict, save_path_f, save_path_d, save_path_o):
+    test_data = TestDataset(1, 17000, 17100)
     t_r = np.exp(target)
     y_r = np.exp(predict)
-    for it in stream.get_epoch_iterator():
+    for batch in range(100):
         e_l = target[batch] - predict[batch]
         e_r = t_r[batch] - y_r[batch]
-        for i in range(len(it[0])):
-            img = it[0][i]
-            dis_img = utility.change_aspect_ratio(img, t_r[batch][i], 1)
-            fix_img = utility.change_aspect_ratio(dis_img, 1/y_r[batch][i], 1)
 
-            print '[test_data]:', i+1
-            print '[t_l]:', round(target[batch][i], 4), '\t[t_r]:', round(t_r[batch][i], 4)
-            print '[y_l]:', round(predict[batch][i], 4), '\t[y_r]:', round(y_r[batch][i], 4)
-            print '[e_l]:', round(e_l[i], 4), '\t[e_r]:', round(e_r[i], 4)
+        b = test_data.get_example(1.0)
+        img = np.transpose(b[0][0], (1, 2, 0))
+        dis_img = utils.change_aspect_ratio(img, t_r[batch], 1)
+        fix_img = utils.change_aspect_ratio(dis_img, 1/y_r[batch], 1)
 
-            plt.figure(figsize=(16, 16))
-            plt.subplot(131)
-            plt.title('Distorted image')
-            plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
-                            labelright='off')
-            plt.tick_params(bottom='off', top='off', left='off', right='off')
-            plt.imshow(dis_img)
-            plt.subplot(132)
-            plt.title('Fixed image')
-            plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
-                            labelright='off')
-            plt.tick_params(bottom='off', top='off', left='off', right='off')
-            plt.imshow(fix_img)
-            plt.subplot(133)
-            plt.title('Normal image')
-            plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
-                            labelright='off')
-            plt.tick_params(bottom='off', top='off', left='off', right='off')
-            plt.imshow(img)
-            plt.show()
+        print('[test_data]:', batch+1)
+        print('[t_l]:', round(target[batch][0][0], 4), '\t[t_r]:', round(t_r[batch][0][0], 4))
+        print('[y_l]:', round(predict[batch][0][0], 4), '\t[y_r]:', round(y_r[batch][0][0], 4))
+        print('[e_l]:', round(e_l[batch][0], 4), '\t[e_r]:', round(e_r[batch][0], 4))
 
-            utility.save_image(dis_img, save_path_d, ('%.18f' % e_l[i]))
-            utility.save_image(fix_img, save_path_f, ('%.18f' % e_l[i]))
-            utility.save_image(img, save_path_o, ('%.18f' % e_l[i]))
+        plt.figure(figsize=(16, 16))
+        plt.subplot(131)
+        plt.title('Distorted image')
+        plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
+                        labelright='off')
+        plt.tick_params(bottom='off', top='off', left='off', right='off')
+        plt.imshow(dis_img/255)
+        plt.subplot(132)
+        plt.title('Fixed image')
+        plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
+                        labelright='off')
+        plt.tick_params(bottom='off', top='off', left='off', right='off')
+        plt.imshow(fix_img/255)
+        plt.subplot(133)
+        plt.title('Normal image')
+        plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
+                        labelright='off')
+        plt.tick_params(bottom='off', top='off', left='off', right='off')
+        plt.imshow(img/255)
+        plt.show()
 
-        batch += 1
+        utils.save_image(dis_img, save_path_d, ('%.18f' % e_l[batch]))
+        utils.save_image(fix_img, save_path_f, ('%.18f' % e_l[batch]))
+        utils.save_image(img, save_path_o, ('%.18f' % e_l[batch]))
+
     make_html.make_html(save_path_d)
     make_html.make_html(save_path_f)
     make_html.make_html(save_path_o)
@@ -140,21 +139,18 @@ def draw_graph(loss, loss_abs, success_asp, num_test, save_root):
 
     count = 0
     for i in range(num_test):
-        if loss_abs[0][i] < threshold:
+        if loss_abs[i][0] < threshold:
             count += 1
-    print 'under log(1.1303) =', count, '%'
-    print '[mean]:', np.mean(loss_abs)
+    print('under log(1.1303) =', count, '%')
+    print('[mean]:', np.mean(loss_abs))
 
 
 if __name__ == '__main__':
     # テスト結果を保存する場所
     save_root = r'E:\demo'
     # テストに使うモデルのnpzファイルの場所
-    model_file = r'C:\Users\yamane\Dropbox\correct_aspect_ratio\dog_data_regression_ave_pooling\1485768519.06_asp_max_4.0\dog_data_regression_ave_pooling.npz'
-    num_train = 16500  # 学習データ数
-    num_valid = 500  # 検証データ数
+    model_file = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\ave_pooling\1510298648.711074\ave_pooling.npz'
     num_test = 100  # テストデータ数
-    asp_r_max = 3.0  # 歪み画像の最大アスペクト比
     success_asp = np.exp(0.12247601469)  # 修正成功とみなす修正画像のアスペクト比の最大値
     batch_size = 100
 
@@ -162,25 +158,19 @@ if __name__ == '__main__':
     folder_name = model_file.split('\\')[-2]
 
     # テスト結果を保存するフォルダを作成
-    test_folder_path = utility.create_folder(save_root, folder_name)
-    fix_folder_path = utility.create_folder(test_folder_path, 'fix')
-    dis_folder_path = utility.create_folder(test_folder_path, 'distorted')
-    ori_folder_path = utility.create_folder(test_folder_path, 'original')
+    test_folder_path = utils.create_folder(save_root, folder_name)
+    fix_folder_path = utils.create_folder(test_folder_path, 'fix')
+    dis_folder_path = utils.create_folder(test_folder_path, 'distorted')
+    ori_folder_path = utils.create_folder(test_folder_path, 'original')
 
     # モデル読み込み
-    model = voc2012_regression_max_pooling.Convnet().to_gpu()
+    model = ave_pooling.AvePooling().to_gpu()
     serializers.load_npz(model_file, model)
 
-    # streamを取得
-    streams = load_datasets.load_voc2012_stream(
-        batch_size, num_train, num_valid, num_test)
-    train_stream, valid_stream, test_stream = streams
-
     # 歪み画像の修正を実行
-    loss, loss_abs, target, predict = lossfun(model, test_stream)
+    loss, loss_abs, target, predict = lossfun(model)
 
-#    show_and_save(test_stream, target, predict, fix_folder_path,
-#                  dis_folder_path, ori_folder_path)
+    show_and_save(target, predict, fix_folder_path, dis_folder_path, ori_folder_path)
 
     # 修正結果の誤差を描画
     draw_graph(loss, loss_abs, success_asp, num_test, test_folder_path)
