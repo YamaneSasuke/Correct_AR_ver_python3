@@ -26,7 +26,7 @@ from load_datasets import TestDataset
 def grad_cam_asp(model, model_name, output_root_dir, t=0.0):
     test_data = TestDataset(1, 17000, 17100)
 
-    for i in range(200):
+    for i in range(100):
         batch = test_data.get_example(t)
         X = batch[0]
         T = batch[1]
@@ -134,8 +134,8 @@ if __name__ == '__main__':
     output_location = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\visualize'
 
     # ARestimatorの場合
-    t = 1
-    model_file = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\conv_pooling\1509605985.5894651\conv_pooling.npz'
+    t = 1 / 1.5
+    model_file = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\ave_pooling\1510298648.711074\ave_pooling.npz'
     model_name = model_file.split('\\')[-3]
     file_name = model_file.split('\\')[-2]
     # 結果保存フォルダ作成
@@ -146,7 +146,7 @@ if __name__ == '__main__':
         pass
     else:
         os.makedirs(output_root_dir)    # モデル読み込み
-    model = conv_pooling.ConvPooling().to_gpu()
+    model = ave_pooling.AvePooling().to_gpu()
     # Optimizerの設定
     serializers.load_npz(model_file, model)
     grad_cam_asp(model, model_name, output_root_dir, t=t)
