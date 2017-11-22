@@ -159,7 +159,7 @@ class TestDataset(chainer.dataset.DatasetMixin):
 
         for b in range(x_batch.shape[0]):
             # 補間方法を乱数で設定
-            u = np.random.randint(5)
+            u = 1
             img = x_batch[b]
             t = t
             r = np.exp(t)
@@ -187,13 +187,13 @@ class TestDataset(chainer.dataset.DatasetMixin):
                 resize_img = cv2.resize(square_img,
                                         (self.output_size, self.output_size),
                                         interpolation=cv2.INTER_LANCZOS4)
-            th = np.random.rand()
-            if th < (1/3):
-                resize_img = utils.draw_horizontal_line(resize_img)
-            elif th > (2/3):
-                resize_img = utils.draw_vertical_line(resize_img)
-            else:
-                resize_img = resize_img
+#            th = np.random.rand()
+#            if th < (1/3):
+#                resize_img = utils.draw_horizontal_line(resize_img)
+#            elif th > (2/3):
+#                resize_img = utils.draw_vertical_line(resize_img)
+#            else:
+#                resize_img = resize_img
             img_list.append(resize_img)
             t_list.append(t)
         x = np.stack(img_list, axis=0)
