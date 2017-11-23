@@ -30,9 +30,9 @@ class Dataset(chainer.dataset.DatasetMixin):
         self.num_data=end-start
         self.num_batch=self.num_data/batch_size
         if train is True:
-            self.permu=np.random.permutation(self.num_data)
+            self.permu=np.random.permutation(self.num_data) + start
         elif train is False:
-            self.permu=np.array(range(self.num_data))
+            self.permu=np.array(range(self.num_data)) + start
         self.indexes=np.array_split(self.permu, self.num_batch)
         self.i=0
         self.finish=False
@@ -126,7 +126,7 @@ class TestDataset(chainer.dataset.DatasetMixin):
         self.output_size=output_size
         self.num_data=end-start
         self.num_batch=self.num_data/batch_size
-        permu=np.array(range(self.num_data))
+        permu=np.array(range(self.num_data)) + start
         self.indexes=np.array_split(permu, self.num_batch)
         self.i=0
         self.finish=False
@@ -205,8 +205,8 @@ class TestDataset(chainer.dataset.DatasetMixin):
 if __name__ == '__main__':
     __spec__ = None
     batch_size = 1
-    start = 0
-    end = 2
+    start = 17000
+    end = 17100
     t = 0
 
 #    train = Dataset(batch_size, start, end, train=False)
