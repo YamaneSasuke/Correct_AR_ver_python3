@@ -209,34 +209,15 @@ if __name__ == '__main__':
     end = 17100
     t = 0
 
-#    train = Dataset(batch_size, start, end, train=False)
-#
-#    ite = MultiprocessIterator(train, 1, n_processes=1)
-#
-#    while True:
-#        batch = next(ite)
-#        x = batch[0][0]
-#        t = batch[0][1]
-#        finish = batch[0][2]
-#        print(finish)
-#        print('---------------------------------------------------------------')
-#        print(x.shape)
-#        print(t.shape)
-#        img = np.transpose(x[0], (1,2,0))/255.0
-#        plt.imshow(img)
-#        plt.show()
-#        print()
-#        if finish is True:
-#            break
-#    ite.finalize()
+    train = Dataset(batch_size, start, end, train=False)
 
-    train = TestDataset(batch_size, start, end)
+    ite = MultiprocessIterator(train, 1, n_processes=1)
 
     while True:
-        batch = train.get_example(t)
-        x = batch[0]
-        t = batch[1]
-        finish = batch[2]
+        batch = next(ite)
+        x = batch[0][0]
+        t = batch[0][1]
+        finish = batch[0][2]
         print(finish)
         print('---------------------------------------------------------------')
         print(x.shape)
@@ -247,3 +228,22 @@ if __name__ == '__main__':
         print()
         if finish is True:
             break
+    ite.finalize()
+
+#    train = TestDataset(batch_size, start, end)
+#
+#    while True:
+#        batch = train.get_example(t)
+#        x = batch[0]
+#        t = batch[1]
+#        finish = batch[2]
+#        print(finish)
+#        print('---------------------------------------------------------------')
+#        print(x.shape)
+#        print(t.shape)
+#        img = np.transpose(x[0], (1,2,0))/255.0
+#        plt.imshow(img)
+#        plt.show()
+#        print()
+#        if finish is True:
+#            break
