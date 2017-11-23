@@ -43,3 +43,70 @@ class ARConvnet(chainer.Chain):
         h = self.cbr5_1(h)
         h = self.cbr5_2(h)
         return h
+
+
+# ネットワークの定義
+class BiasSumPooling(object):
+    def __init__(self):
+        self.w=None
+
+    def __call__(self, h):
+        w = F.tanh(F.sum(h, axis=1, keepdims=True))
+        self.w = F.broadcast_to(w, h.shape)
+        weighted_h = h * self.w
+        pooled_h = F.sum(weighted_h, axis=(2, 3))
+        return pooled_h / F.sum(w, axis=(2, 3))
+
+
+# ネットワークの定義
+class ConvPooling1(chainer.Chain):
+    def __init__(self):
+        super(ConvPooling1, self).__init__(
+            create_w1=L.Convolution2D(512, 1, 1,1),
+            w=None
+        )
+
+    def __call__(self, h):
+        w = F.tanh(F.relu(self.create_w1(h)))
+        self.w = F.broadcast_to(w, h.shape)
+        weighted_h = h * self.w
+        pooled_h = F.sum(weighted_h, axis=(2, 3))
+        return F.relu(pooled_h)
+
+
+# ネットワークの定義
+class ConvPooling2(chainer.Chain):
+    def __init__(self):
+        super(ConvPooling2, self).__init__(
+            create_w1=CBR(512, 250, 1,1),
+            create_w2=L.Convolution2D(250, 1, 1,1),
+            w=None
+        )
+
+    def __call__(self, h):
+        w = self.create_w1(h)
+        w = F.tanh(F.relu(self.create_w2(h)))
+        self.w = F.broadcast_to(w, h.shape)
+        weighted_h = h * self.w
+        pooled_h = F.sum(weighted_h, axis=(2, 3))
+        return F.relu(pooled_h)
+
+
+# ネットワークの定義
+class ConvPooling3(chainer.Chain):
+    def __init__(self):
+        super(ConvPooling3, self).__init__(
+            create_w1=CBR(512, 300, 1,1),
+            create_w2=CBR(300, 100, 1,1),
+            create_w3=L.Convolution2D(100, 1, 1,1),
+            w=None
+        )
+
+    def __call__(self, h):
+        w = self.create_w1(h)
+        w = self.create_w2(h)
+        w = F.tanh(F.relu(self.create_w3(h)))
+        self.w = F.broadcast_to(w, h.shape)
+        weighted_h = h * self.w
+        pooled_h = F.sum(weighted_h, axis=(2, 3))
+        return F.relu(pooled_h)

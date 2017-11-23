@@ -12,29 +12,23 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers, Chain
 
-from links import ARConvnet
+from links import ARConvnet, BiasSumPooling
 from train import trainer
 
 # ネットワークの定義
-class BiasSumPooling(Chain):
+class Network(Chain):
     def __init__(self):
-        super(BiasSumPooling, self).__init__(
+        super(Network, self).__init__(
             conv=ARConvnet(),
+            pooling=BiasSumPooling(),
             l1=L.Linear(512, 1)
         )
 
     def __call__(self, X):
         h = self.conv(X)
-        h = self.bias_sum_pooling(h)
+        h = self.pooling(h)
         y = self.l1(h)
         return y
-
-    def bias_sum_pooling(self, x):
-        w = F.tanh(F.sum(x, axis=1, keepdims=True))
-        w = F.broadcast_to(w, x.shape)
-        weighted_x = x * w
-        pooled_x = F.sum(weighted_x, axis=(2, 3))
-        return pooled_x / F.sum(w, axis=(2, 3))
 
     def lossfun(self, X, t):
         y = self(X)
@@ -46,7 +40,7 @@ if __name__ == '__main__':
     file_name = os.path.splitext(os.path.basename(__file__))[0]
 
     # 超パラメータ
-    max_iteration = 1500  # 繰り返し回数
+    max_iteration = 2000  # 繰り返し回数
     batch_size = 100  # ミニバッチサイズ
     num_train = 16500  # 学習データ数
     num_valid = 500  # 検証データ数

@@ -11,35 +11,23 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers, Chain
 
-from links import ARConvnet, CBR
+from links import ARConvnet, CBR, ConvPooling1, ConvPooling2, ConvPooling3
 from train import trainer
 
 # ネットワークの定義
-class ConvPooling(Chain):
+class Network(Chain):
     def __init__(self):
-        super(ConvPooling, self).__init__(
+        super(Network, self).__init__(
             conv=ARConvnet(),
-            create_w_1=CBR(512, 300, 1),
-            create_w_2=CBR(300, 100, 1),
-            create_w_3=L.Convolution2D(100, 1, 1),
-            bn=L.BatchNormalization(1),
+            pooling=ConvPooling1(),
             l1=L.Linear(512, 1)
         )
 
     def __call__(self, X):
         h = self.conv(X)
-        h = self.conv_pooling(h)
+        h = self.pooling(h)
         y = self.l1(h)
         return y
-
-    def conv_pooling(self, x):
-        w = self.create_w_1(x)
-        w = self.create_w_2(w)
-        w = F.tanh(self.bn(self.create_w_3(w)))
-        w = F.broadcast_to(w, x.shape)
-        weighted_x = x * w
-        pooled_x = F.sum(weighted_x, axis=(2, 3))
-        return F.relu(pooled_x)
 
     def lossfun(self, X, t):
         y = self(X)
@@ -51,7 +39,7 @@ if __name__ == '__main__':
     file_name = os.path.splitext(os.path.basename(__file__))[0]
 
     # 超パラメータ
-    max_iteration = 1500  # 繰り返し回数
+    max_iteration = 2000  # 繰り返し回数
     batch_size = 100  # ミニバッチサイズ
     num_train = 16500  # 学習データ数
     num_valid = 500  # 検証データ数
@@ -60,7 +48,7 @@ if __name__ == '__main__':
     # 学習結果保存場所
     output_location = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio'
     # モデル読み込み
-    model = ConvPooling().to_gpu()
+    model = Network().to_gpu()
 
     # Optimizerの設定
     optimizer = optimizers.Adam(learning_rate)
