@@ -49,7 +49,7 @@ if __name__ == '__main__':
     # 学習結果保存場所
     output_location = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio'
     # モデル読み込み
-    model = BiasSumPooling().to_gpu()
+    model = Network().to_gpu()
 
     # Optimizerの設定
     optimizer = optimizers.Adam(learning_rate)
