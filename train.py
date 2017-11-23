@@ -16,6 +16,8 @@ import chainer
 from chainer import cuda, serializers
 from chainer.iterators import MultiprocessIterator
 
+import cv2
+
 from load_datasets import Dataset
 
 def loss_ave(model, iterator):
@@ -59,6 +61,7 @@ def trainer(file_name, model, optimizer, params):
     output_location = params[6]  # 学習結果保存場所
     train_index = num_train
     valid_index = num_train + num_valid
+    models = ['conv_pooling', 'bias_sum_pooling']
 
     # 学習結果保存フォルダ作成
     output_root_dir = os.path.join(output_location, file_name)
@@ -80,7 +83,7 @@ def trainer(file_name, model, optimizer, params):
     # stream作成
     train_data = Dataset(batch_size, 0, train_index, aspect_ratio_max, train=True)
     valid_data = Dataset(batch_size, train_index, valid_index, aspect_ratio_max, train=False)
-    test_data = Dataset(batch_size, valid_index, 17100, aspect_ratio_max, train=False)
+    test_data = Dataset(1, valid_index, 17100, aspect_ratio_max, train=False)
     train_ite = MultiprocessIterator(train_data, 1, n_processes=1)
     valid_ite = MultiprocessIterator(valid_data, 1, n_processes=1)
     test_ite = MultiprocessIterator(test_data, 1, n_processes=1)
@@ -139,6 +142,25 @@ def trainer(file_name, model, optimizer, params):
             plt.legend(["train", "valid"], bbox_to_anchor=(1.2, 1), loc="upper right")
             plt.grid()
             plt.show()
+
+            if file_name in models:
+                batch = next(test_ite)
+                X = batch[0][0]
+                X = cuda.to_gpu(X)
+                # 勾配を初期化
+                model.cleargrads()
+                with chainer.using_config('train', False):
+                    # 順伝播を計算し、誤差と精度を取得
+                    y = model(X)
+                w = cuda.to_cpu(model.pooling.w.data[0][0])
+                img = cuda.to_cpu(X)
+                img = np.transpose(img[0], (1, 2, 0))
+                w = cv2.resize(w, (img.shape[0], img.shape[0]))
+                plt.subplot(1, 2, 1)
+                plt.imshow(w)
+                plt.subplot(1, 2, 2)
+                plt.imshow(img / 255)
+                plt.show()
 
     except KeyboardInterrupt:
         print("割り込み停止が実行されました")
