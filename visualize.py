@@ -49,28 +49,31 @@ def grad_cam_asp(model, model_name, output_root_dir, t=0.0):
             h = model.conv.cbr4_2(h)
             h = model.conv.cbr5_1(h)
             h = model.conv.cbr5_2.conv(h)
-            h1 = model.conv.cbr5_2.bn(h)
-            h1 = F.relu(h1)
+            h = model.conv.cbr5_2.bn(h)
+            h = F.relu(h)
 
             if model_name == 'bias_sum_pooling':
-                h1 = model.bias_sum_pooling(h1)
+                h1 = model.bias_sum_pooling(h)
             elif model_name == 'conv_pooling':
-                h1 = model.conv_pooling(h1)
+                h1 = model.conv_pooling(h)
             elif model_name == 'ave_pooling':
-                h1 = F.average_pooling_2d(h1, 7)
+                h1 = F.average_pooling_2d(h, 7)
             elif model_name == 'max_pooling':
-                h1 = F.max_pooling_2d(h1, 7)
+                h1 = F.max_pooling_2d(h, 7)
             y = model.l1(h1)
             y.grad = grad
             y.backward(retain_grad=True)
+
             w = F.average_pooling_2d(h.grad, 7)
             w = F.broadcast_to(w, h.shape)
+
             w_posi = F.relu(h.grad)
-#            w_posi = F.average_pooling_2d(w_posi, 7)
-#            w_posi = F.broadcast_to(w_posi, h1.shape)
-            w_nega = (-1) * F.relu((-1) * h.grad)
-#            w_nega = F.average_pooling_2d(w_nega, 7)
-#            w_nega = F.broadcast_to(w_nega, h1.shape)
+            w_posi = F.average_pooling_2d(w_posi, 7)
+            w_posi = F.broadcast_to(w_posi, h.shape)
+
+            w_nega = F.relu((-1) * h.grad)
+            w_nega = F.average_pooling_2d(w_nega, 7)
+            w_nega = F.broadcast_to(w_nega, h.shape)
 
             grad_cam = F.relu(F.sum( w * h.data, axis=1))
             grad_cam = cuda.to_cpu(grad_cam.data)
@@ -80,7 +83,7 @@ def grad_cam_asp(model, model_name, output_root_dir, t=0.0):
             grad_cam_posi = cuda.to_cpu(grad_cam_posi.data)
             grad_cam_posi = cv2.resize(grad_cam_posi[0], (224, 224))
 
-            grad_cam_nega = F.relu((-1) * F.sum( w_nega * h.data, axis=1))
+            grad_cam_nega = F.relu(F.sum(w_nega * h.data, axis=1))
             grad_cam_nega = cuda.to_cpu(grad_cam_nega.data)
             grad_cam_nega = cv2.resize(grad_cam_nega[0], (224, 224))
 
@@ -99,21 +102,21 @@ def grad_cam_asp(model, model_name, output_root_dir, t=0.0):
             plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
                             labelright='off')
             plt.tick_params(bottom='off', top='off', left='off', right='off')
-#            plt.savefig(img_name+'.jpg', format='jpg', bbox_inches='tight')
+
             plt.subplot(1, 4, 2)
             plt.imshow(img[0]/ 255.0)
             plt.imshow(grad_cam, cmap=plt.cm.jet, alpha=0.4, clim=(0.0, grad_cam.max()))
             plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
                             labelright='off')
             plt.tick_params(bottom='off', top='off', left='off', right='off')
-#            plt.savefig(img_name+'.jpg', format='jpg', bbox_inches='tight')
+
             plt.subplot(1, 4, 3)
             plt.imshow(img[0]/ 255.0)
             plt.imshow(grad_cam_posi, cmap=plt.cm.jet, alpha=0.4, clim=(0.0, max_))
             plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
                             labelright='off')
             plt.tick_params(bottom='off', top='off', left='off', right='off')
-#            plt.savefig(img_name+'.jpg', format='jpg', bbox_inches='tight')
+
             plt.subplot(1, 4, 4)
             plt.imshow(img[0]/ 255.0)
             plt.imshow(grad_cam_nega, cmap=plt.cm.jet, alpha=0.4, clim=(0.0, max_))
@@ -165,12 +168,25 @@ def grad_cam_vgg(img_root, label_num):
     w = F.average_pooling_2d(h.grad, h.data.shape[-1])
     w = F.broadcast_to(w, h.shape)
     grad_cam = F.relu(F.sum(w * h.data, axis=1))
+
+    w_posi = F.relu(h.grad)
+    w_nega = (-1) * F.relu((-1) * h.grad)
+
+    grad_cam_posi = F.relu(F.sum( w_posi * h.data, axis=1))
+    grad_cam_nega = F.relu((-1) * F.sum( w_nega * h.data, axis=1))
+
     img = cuda.to_cpu(X)
     grad_cam = cuda.to_cpu(grad_cam.data)
+    grad_cam_posi = cuda.to_cpu(grad_cam_posi.data)
+    grad_cam_nega = cuda.to_cpu(grad_cam_nega.data)
+
     grad_cam = cv2.resize(grad_cam[0], (img.shape[-1], img.shape[-1]))
+    grad_cam_posi = cv2.resize(grad_cam_posi[0], (img.shape[-1], img.shape[-1]))
+    grad_cam_nega = cv2.resize(grad_cam_nega[0], (img.shape[-1], img.shape[-1]))
+
     img = np.transpose(img, (0, 2, 3, 1))
     plt.imshow(img[0]/ 255.0)
-    plt.imshow(grad_cam, cmap=plt.cm.jet, alpha=0.4)
+#    plt.imshow(grad_cam_nega, cmap=plt.cm.jet, alpha=0.4)
     plt.tick_params(labelbottom='off', labeltop='off', labelleft='off',
                     labelright='off')
     plt.tick_params(bottom='off', top='off', left='off', right='off')
@@ -190,8 +206,8 @@ if __name__ == '__main__':
     output_location = r'C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\visualize'
 
     # ARestimatorの場合
-    t = 1
-    model_file = r"C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\bias_sum_pooling\1509613391.5179036\bias_sum_pooling.npz"
+    t = np.log(1)
+    model_file = r"C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\ave_pooling\1510298648.711074\ave_pooling.npz"
     model_name = model_file.split('\\')[-3]
     file_name = model_file.split('\\')[-2]
     # 結果保存フォルダ作成
@@ -202,7 +218,7 @@ if __name__ == '__main__':
         pass
     else:
         os.makedirs(output_root_dir)    # モデル読み込み
-    model = bias_sum_pooling.BiasSumPooling().to_gpu()
+    model = ave_pooling.AvePooling().to_gpu()
     # Optimizerの設定
     serializers.load_npz(model_file, model)
     grad_cam_asp(model, model_name, output_root_dir, t=t)
