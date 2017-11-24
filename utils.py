@@ -138,28 +138,60 @@ def save_image(image, save_path, image_name):
     plt.imsave(image_name+'.jpg', image)
 
 
-def draw_vertical_line(image):
+def draw_vertical_line(image, loc='all'):
     """
     image:
         shape=(224, 224, 3)
     """
     img = copy.copy(image)
-    max_ = np.random.randint(1, 11)
-    for i in range(max_):
-        u = np.random.randint(0, img.shape[1]-2)
-        img[:, u:u+2, :] = 0
+    if loc == 'left':
+        u = 20
+        for i in range(3):
+            img[:, u:u+2, :] = 0
+            u += 15
+    if loc == 'middle':
+        u = 95
+        for i in range(3):
+            img[:, u:u+2, :] = 0
+            u += 15
+    if loc == 'right':
+        u = 150
+        for i in range(3):
+            img[:, u:u+2, :] = 0
+            u += 15
+    elif loc == 'all':
+        max_ = np.random.randint(1, 11)
+        for i in range(max_):
+            u = np.random.randint(0, img.shape[1]-2)
+            img[:, u:u+2, :] = 0
     return img
 
-def draw_horizontal_line(image):
+def draw_horizontal_line(image, loc='all'):
     """
     image:
         shape=(224, 224, 3)
     """
     img = copy.copy(image)
-    max_ = np.random.randint(1, 11)
-    for i in range(max_):
-        u = np.random.randint(0, img.shape[0]-2)
-        img[u:u+2, :, :] = 0
+    if loc == 'top':
+        u = 20
+        for i in range(3):
+            img[u:u+2, :, :] = 0
+            u += 15
+    elif loc == 'middle':
+        u = 95
+        for i in range(3):
+            img[u:u+2, :, :] = 0
+            u += 15
+    elif loc == 'bottom':
+        u = 150
+        for i in range(3):
+            img[u:u+2, :, :] = 0
+            u += 15
+    elif loc == 'all':
+        max_ = np.random.randint(1, 11)
+        for i in range(max_):
+            u = np.random.randint(0, img.shape[0]-2)
+            img[u:u+2, :, :] = 0
     return img
 
 if __name__ == '__main__':
