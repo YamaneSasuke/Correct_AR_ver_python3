@@ -25,7 +25,7 @@ import bias_sum_pooling, conv_pooling, ave_pooling, max_pooling
 from load_datasets import TestDataset
 
 def grad_cam_asp(model, model_name, output_root_dir, t=0.0):
-    test_data = TestDataset(1, 17000, 17100)
+    test_data = TestDataset(1, 17000, 17001)
 
     for i in range(100):
         batch = test_data.get_example(t)

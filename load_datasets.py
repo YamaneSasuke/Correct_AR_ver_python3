@@ -60,7 +60,7 @@ class Dataset(chainer.dataset.DatasetMixin):
             if self.train is True:
                 self.permu=np.random.permutation(self.num_data)
             elif self.train is False:
-                self.permu=np.array(range(self.num_data))
+                self.permu=np.array(range(self.num_data)) + self.start
             self.indexes=np.array_split(self.permu, self.num_batch)
             self.finish = True
         return x, t, self.finish
@@ -208,26 +208,30 @@ if __name__ == '__main__':
     start = 17000
     end = 17100
     t = 0
+    n = 1
 
     train = Dataset(batch_size, start, end, train=False)
 
     ite = MultiprocessIterator(train, 1, n_processes=1)
-
-    while True:
-        batch = next(ite)
-        x = batch[0][0]
-        t = batch[0][1]
-        finish = batch[0][2]
-        print(finish)
-        print('---------------------------------------------------------------')
-        print(x.shape)
-        print(t.shape)
-        img = np.transpose(x[0], (1,2,0))/255.0
-        plt.imshow(img)
-        plt.show()
-        print()
-        if finish is True:
-            break
+    for i in range(5):
+        while True:
+            batch = next(ite)
+            x = batch[0][0]
+            t = batch[0][1]
+            finish = batch[0][2]
+            print(finish)
+            print('---------------------------------------------------------------')
+            print(n)
+            print(x.shape)
+            print(t.shape)
+            img = np.transpose(x[0], (1,2,0))/255.0
+            plt.imshow(img)
+            plt.show()
+            print()
+            n += 1
+            if finish is True:
+                n = 1
+                break
     ite.finalize()
 
 #    train = TestDataset(batch_size, start, end)
