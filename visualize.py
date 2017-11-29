@@ -22,10 +22,10 @@ from chainercv.links import SSD300, FasterRCNNVGG16
 from chainercv.visualizations import vis_bbox
 
 import bias_sum_pooling, conv_pooling, ave_pooling, max_pooling
-from load_datasets import TestDataset
+from load_datasets import TestDataset, AddLineData
 
 def grad_cam_asp(model, model_name, output_root_dir, t=0.0):
-    test_data = TestDataset(1, 17000, 17001)
+    test_data = TestDataset(1, 17000, 17100)
 
     for i in range(100):
         batch = test_data.get_example(t)
@@ -53,9 +53,9 @@ def grad_cam_asp(model, model_name, output_root_dir, t=0.0):
             h = F.relu(h)
 
             if model_name == 'bias_sum_pooling':
-                h1 = model.bias_sum_pooling(h)
+                h1 = model.pooling(h)
             elif model_name == 'conv_pooling':
-                h1 = model.conv_pooling(h)
+                h1 = model.pooling(h)
             elif model_name == 'ave_pooling':
                 h1 = F.average_pooling_2d(h, 7)
             elif model_name == 'max_pooling':
@@ -207,7 +207,7 @@ if __name__ == '__main__':
 
     # ARestimatorの場合
     t = np.log(1)
-    model_file = r"C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\ave_pooling\1510298648.711074\ave_pooling.npz"
+    model_file = r"C:\Users\yamane\OneDrive\M1\correct_aspect_ratio\bias_sum_pooling\1511509274.1956708\bias_sum_pooling.npz"
     model_name = model_file.split('\\')[-3]
     file_name = model_file.split('\\')[-2]
     # 結果保存フォルダ作成
@@ -218,7 +218,7 @@ if __name__ == '__main__':
         pass
     else:
         os.makedirs(output_root_dir)    # モデル読み込み
-    model = ave_pooling.AvePooling().to_gpu()
+    model = bias_sum_pooling.Network().to_gpu()
     # Optimizerの設定
     serializers.load_npz(model_file, model)
     grad_cam_asp(model, model_name, output_root_dir, t=t)

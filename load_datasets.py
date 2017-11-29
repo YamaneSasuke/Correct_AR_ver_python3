@@ -287,7 +287,7 @@ if __name__ == '__main__':
     __spec__ = None
     batch_size = 1
     start = 17000
-    end = 17100
+    end = 17125
     t = 0
     n = 1
 
@@ -315,31 +315,31 @@ if __name__ == '__main__':
 #                break
 #    ite.finalize()
 #
-#    train = TestDataset(batch_size, start, end)
+    train = TestDataset(batch_size, start, end)
+
+    while True:
+        batch = train.get_example(t)
+        x = batch[0]
+        t = batch[1]
+        finish = batch[2]
+        print(finish)
+        print('---------------------------------------------------------------')
+        print(x.shape)
+        print(t.shape)
+        img = np.transpose(x[0], (1,2,0))/255.0
+        plt.imshow(img)
+        plt.show()
+        print()
+        if finish is True:
+            break
+
+#    train = AddLineData(17038)
 #
-#    while True:
-#        batch = train.get_example(t)
-#        x = batch[0]
-#        t = batch[1]
-#        finish = batch[2]
-#        print(finish)
-#        print('---------------------------------------------------------------')
-#        print(x.shape)
-#        print(t.shape)
-#        img = np.transpose(x[0], (1,2,0))/255.0
-#        plt.imshow(img)
-#        plt.show()
-#        print()
-#        if finish is True:
-#            break
-
-    train = AddLineData(17010)
-
-    batch = train.get_example(t, 'v', 'right')
-    x = batch[0]
-    t = batch[1]
-    print(x.shape)
-    print(t.shape)
-    img = np.transpose(x[0], (1,2,0))/255.0
-    plt.imshow(img)
-    plt.show()
+#    batch = train.get_example(t, 'v', 'right')
+#    x = batch[0]
+#    t = batch[1]
+#    print(x.shape)
+#    print(t.shape)
+#    img = np.transpose(x[0], (1,2,0))/255.0
+#    plt.imshow(img)
+#    plt.show()
