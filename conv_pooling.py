@@ -25,7 +25,7 @@ class Network(Chain):
 
     def __call__(self, X):
         h = self.conv(X)
-        h = self.pooling(h)
+        h = F.relu(self.pooling(h))
         y = self.l1(h)
         return y
 

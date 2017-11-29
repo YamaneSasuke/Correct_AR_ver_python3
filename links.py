@@ -56,8 +56,8 @@ class BiasSumPooling(chainer.Chain):
         self.w = F.tanh(F.sum(h, axis=1, keepdims=True))
         w = F.broadcast_to(self.w, h.shape)
         weighted_h = h * w
-        pooled_h = F.sum(weighted_h, axis=(2, 3))
-        return pooled_h / F.sum(w, axis=(2, 3))
+        pooled_h = F.average_pooling_2d(weighted_h, 7)
+        return pooled_h
 
 
 # ネットワークの定義
@@ -72,8 +72,8 @@ class ConvPooling1(chainer.Chain):
         self.w = F.tanh(F.relu(self.create_w1(h)))
         w = F.broadcast_to(self.w, h.shape)
         weighted_h = h * w
-        pooled_h = F.sum(weighted_h, axis=(2, 3))
-        return F.relu(pooled_h)
+        pooled_h = F.average_pooling_2d(weighted_h, 7)
+        return pooled_h
 
 
 # ネットワークの定義
@@ -90,8 +90,8 @@ class ConvPooling2(chainer.Chain):
         self.w = F.tanh(F.relu(self.create_w2(h)))
         w = F.broadcast_to(self.w, h.shape)
         weighted_h = h * w
-        pooled_h = F.sum(weighted_h, axis=(2, 3))
-        return F.relu(pooled_h)
+        pooled_h = F.average_pooling_2d(weighted_h, 7)
+        return pooled_h
 
 
 # ネットワークの定義
@@ -110,5 +110,5 @@ class ConvPooling3(chainer.Chain):
         self.w = F.tanh(F.relu(self.create_w3(h)))
         w = F.broadcast_to(self.w, h.shape)
         weighted_h = h * w
-        pooled_h = F.sum(weighted_h, axis=(2, 3))
-        return F.relu(pooled_h)
+        pooled_h = F.average_pooling_2d(weighted_h, 7)
+        return pooled_h
