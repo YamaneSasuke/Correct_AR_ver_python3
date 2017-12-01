@@ -30,9 +30,9 @@ class Dataset(chainer.dataset.DatasetMixin):
         self.num_data=end-start
         self.num_batch=self.num_data/batch_size
         if train is True:
-            self.permu=np.random.permutation(self.num_data)
+            self.permu=np.random.permutation(self.num_data) + start
         elif train is False:
-            self.permu=np.array(range(self.num_data))
+            self.permu=np.array(range(self.num_data)) + start
         self.indexes=np.array_split(self.permu, self.num_batch)
         self.i=0
         self.finish=False
@@ -60,7 +60,7 @@ class Dataset(chainer.dataset.DatasetMixin):
             if self.train is True:
                 self.permu=np.random.permutation(self.num_data)
             elif self.train is False:
-                self.permu=np.array(range(self.num_data))
+                self.permu=np.array(range(self.num_data)) + self.start
             self.indexes=np.array_split(self.permu, self.num_batch)
             self.finish = True
         return x, t, self.finish
@@ -104,13 +104,13 @@ class Dataset(chainer.dataset.DatasetMixin):
                 crop_img = utils.random_crop_and_flip(resize_img, self.crop_size)
             else:
                 crop_img = utils.crop_224(resize_img)
-            th = np.random.rand()
-            if th < (1/3):
-                crop_img = utils.draw_horizontal_line(crop_img)
-            elif th > (2/3):
-                crop_img = utils.draw_vertical_line(crop_img)
-            else:
-                crop_img = crop_img
+#            th = np.random.rand()
+#            if th < (1/3):
+#                crop_img = utils.draw_horizontal_line(crop_img)
+#            elif th > (2/3):
+#                crop_img = utils.draw_vertical_line(crop_img)
+#            else:
+#                crop_img = crop_img
             img_list.append(crop_img)
             t_list.append(t)
         x = np.stack(img_list, axis=0)
@@ -126,7 +126,7 @@ class TestDataset(chainer.dataset.DatasetMixin):
         self.output_size=output_size
         self.num_data=end-start
         self.num_batch=self.num_data/batch_size
-        permu=np.array(range(self.num_data))
+        permu=np.array(range(self.num_data)) + start
         self.indexes=np.array_split(permu, self.num_batch)
         self.i=0
         self.finish=False
@@ -159,7 +159,7 @@ class TestDataset(chainer.dataset.DatasetMixin):
 
         for b in range(x_batch.shape[0]):
             # 補間方法を乱数で設定
-            u = np.random.randint(5)
+            u = 1
             img = x_batch[b]
             t = t
             r = np.exp(t)
@@ -187,6 +187,94 @@ class TestDataset(chainer.dataset.DatasetMixin):
                 resize_img = cv2.resize(square_img,
                                         (self.output_size, self.output_size),
                                         interpolation=cv2.INTER_LANCZOS4)
+#            th = np.random.rand()
+#            if th < (1/3):
+#                resize_img = utils.draw_horizontal_line(resize_img)
+#            elif th > (2/3):
+#                resize_img = utils.draw_vertical_line(resize_img)
+#            else:
+#                resize_img = resize_img
+            img_list.append(resize_img)
+            t_list.append(t)
+        x = np.stack(img_list, axis=0)
+        x = np.transpose(x, (0, 3, 1, 2))
+        x = x.astype(np.float32)
+        t = np.array(t_list, dtype=np.float32).reshape(-1, 1)
+        return x, t
+
+
+class AddLineData(chainer.dataset.DatasetMixin):
+    def __init__(self, img_index=17000, output_size=224):
+        self.index=img_index
+        self.output_size=output_size
+
+        fuel_root = fuel.config.data_path[0]
+        # データセットファイル保存場所
+        hdf5_filepath=os.path.join(
+                fuel_root, 'voc2012\hdf5_dataset\hdf5_dataset.hdf5')
+        h5py_file=h5py.File(hdf5_filepath)
+        dataset=H5PYDataset(h5py_file, ['train'])
+        handle = dataset.open()
+        self.data = dataset.get_data(handle, [self.index])
+        dataset.close(handle)
+
+    def __len__(self):
+        return (self.end - self.start)
+
+    def get_example(self, t, line_ang='all', line_loc='all'):
+        """
+        t:
+            t = log(aspect ratio)
+        line_ang:
+            angle of draw line in image. v (vertical) or h (horizonrtal).
+        line_loc:
+            location of draw line in image. if ang = v, line_loc = right,
+            middle, left or all. if ang = h, line_loc = top, middle, bottom or all.
+        """
+        x, t = self.create_distorted_img(self.data[0], t, line_ang, line_loc)
+        return x, t
+
+    def create_distorted_img(self, x_batch, t, ang, loc):
+        img_list = []
+        t_list = []
+
+        for b in range(x_batch.shape[0]):
+            # 補間方法を乱数で設定
+            u = 1
+            img = x_batch[b]
+            t = t
+            r = np.exp(t)
+            # 歪み画像生成
+            img = utils.change_aspect_ratio(img, r, u)
+            # 中心切り抜き
+            square_img = utils.crop_center(img)
+            if u == 0:
+                resize_img = cv2.resize(square_img,
+                                        (self.output_size, self.output_size),
+                                        interpolation=cv2.INTER_NEAREST)
+            elif u == 1:
+                resize_img = cv2.resize(square_img,
+                                        (self.output_size, self.output_size),
+                                        interpolation=cv2.INTER_LINEAR)
+            elif u == 2:
+                resize_img = cv2.resize(square_img,
+                                        (self.output_size, self.output_size),
+                                        interpolation=cv2.INTER_AREA)
+            elif u == 3:
+                resize_img = cv2.resize(square_img,
+                                        (self.output_size, self.output_size),
+                                        interpolation=cv2.INTER_CUBIC)
+            elif u == 4:
+                resize_img = cv2.resize(square_img,
+                                        (self.output_size, self.output_size),
+                                        interpolation=cv2.INTER_LANCZOS4)
+            if ang == 'h':
+                resize_img = utils.draw_horizontal_line(resize_img, loc)
+            elif ang == 'v':
+                resize_img = utils.draw_vertical_line(resize_img, loc)
+            elif ang == 'all':
+                resize_img = utils.draw_horizontal_line(resize_img)
+                resize_img = utils.draw_vertical_line(resize_img)
             img_list.append(resize_img)
             t_list.append(t)
         x = np.stack(img_list, axis=0)
@@ -198,31 +286,35 @@ class TestDataset(chainer.dataset.DatasetMixin):
 if __name__ == '__main__':
     __spec__ = None
     batch_size = 1
-    start = 0
-    end = 2
+    start = 17000
+    end = 17125
     t = 0
+    n = 1
 
 #    train = Dataset(batch_size, start, end, train=False)
 #
 #    ite = MultiprocessIterator(train, 1, n_processes=1)
-#
-#    while True:
-#        batch = next(ite)
-#        x = batch[0][0]
-#        t = batch[0][1]
-#        finish = batch[0][2]
-#        print(finish)
-#        print('---------------------------------------------------------------')
-#        print(x.shape)
-#        print(t.shape)
-#        img = np.transpose(x[0], (1,2,0))/255.0
-#        plt.imshow(img)
-#        plt.show()
-#        print()
-#        if finish is True:
-#            break
+#    for i in range(5):
+#        while True:
+#            batch = next(ite)
+#            x = batch[0][0]
+#            t = batch[0][1]
+#            finish = batch[0][2]
+#            print(finish)
+#            print('---------------------------------------------------------------')
+#            print(n)
+#            print(x.shape)
+#            print(t.shape)
+#            img = np.transpose(x[0], (1,2,0))/255.0
+#            plt.imshow(img)
+#            plt.show()
+#            print()
+#            n += 1
+#            if finish is True:
+#                n = 1
+#                break
 #    ite.finalize()
-
+#
     train = TestDataset(batch_size, start, end)
 
     while True:
@@ -240,3 +332,14 @@ if __name__ == '__main__':
         print()
         if finish is True:
             break
+
+#    train = AddLineData(17038)
+#
+#    batch = train.get_example(t, 'v', 'right')
+#    x = batch[0]
+#    t = batch[1]
+#    print(x.shape)
+#    print(t.shape)
+#    img = np.transpose(x[0], (1,2,0))/255.0
+#    plt.imshow(img)
+#    plt.show()
